@@ -5,4 +5,4 @@ const itemSchema = new mongoose.Schema({
     price: { type: Number, required: true },
 });
 
-export const Item = mongoose.model('Coffee', itemSchema);
+export const Item = mongoose.model('Item', itemSchema);

@@ -1,7 +1,7 @@
 //Imports
 import express from 'express';
 import { connectDB } from './config/db.js';
-import { User } from './models/users.js';
+
 import { middleWare } from './middlewares/middleware.js';
 
 await connectDB();
