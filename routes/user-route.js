@@ -3,6 +3,22 @@ import { User } from '../models/users.js';
 
 const router = express.Router();
 
+// Hämta användare
+router.get('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch user', details: error.message });
+    }
+});
+
 // Skapa en ny användare (POST)
 router.post('/register', async (req, res) => {
     try {
