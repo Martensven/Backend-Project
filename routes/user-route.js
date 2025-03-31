@@ -22,9 +22,9 @@ router.get('/:id', async (req, res) => {
 // Skapa en ny användare (POST)
 router.post('/register', async (req, res) => {
     try {
-        const { first_name, last_name, street, zip_code, city, password } = req.body;
+        const { first_name, last_name, email, street, zip_code, city, password } = req.body;
 
-        if (!first_name || !last_name || !street || !zip_code || !city || !password) {
+        if (!first_name || !last_name || !email || !street || !zip_code || !city || !password) {
 
             return res.status(400).json({ error: 'All fields are required' });
         }
