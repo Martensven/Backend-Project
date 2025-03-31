@@ -2,6 +2,7 @@
 import express from 'express';
 import { connectDB } from './config/db.js';
 import userRoutes from './routes/user-route.js';
+import itemRoutes from './routes/item-route.js';
 import { middleWare } from './middlewares/middleware.js';
 
 const app = express(); // Skapa app först!
@@ -14,6 +15,7 @@ await middleWare();
 
 // Routes
 app.use('/user', userRoutes);
+app.use('/items', itemRoutes);
 
 // Anslut till databasen och starta servern
 connectDB()
@@ -30,4 +32,5 @@ connectDB()
 app.get('/', (req, res) => {
     res.send('Hello world!');
 });
+
 
