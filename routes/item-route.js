@@ -1,9 +1,9 @@
 import express from 'express';
-import { Item } from '../models/items.js';
+import { Item } from '../models/items.js'; // Databasen
 
 const router = express.Router();
 
-// GET alla items - ändra från '/items' till '/'
+// Alla varor i items
 router.get('/', async (req, res) => {
     try {
         const items = await Item.find();
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET specifik item - behåll '/:id'
+// Get för _id 
 router.get('/:id', async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
@@ -44,7 +44,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// GET specifik item med numeriskt id
+// GET specifik item 
 router.get('/by-number/:id', async (req, res) => {
     try {
         const item = await Item.findOne({ id: Number(req.params.id) });
