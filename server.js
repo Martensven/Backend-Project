@@ -3,6 +3,7 @@ import express from 'express';
 import { connectDB } from './config/db.js';
 import userRoutes from './routes/user-route.js';
 import itemRoutes from './routes/item-route.js';
+import orderRoutes from './routes/order-route.js'
 import { middleWare } from './middlewares/middleware.js';
 
 const app = express(); // Skapa app först!
@@ -16,6 +17,7 @@ await middleWare();
 // Routes
 app.use('/user', userRoutes);
 app.use('/items', itemRoutes);
+app.use('/orders', orderRoutes)
 
 // Anslut till databasen och starta servern
 connectDB()

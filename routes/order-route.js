@@ -1,27 +1,30 @@
-import express from 'express';
+import express, { Router } from 'express';
 import mongoose from 'mongoose';
 import { Order } from './models/orders.js';
 import { Cart } from './models/cart.js';
 
-const app = express(); 
+const router = express.Router();
+const app = express();
 
 //Hämtar items from cart.js genom en specifik user id
-app.post('/orders/:userid', async (req, res) => {
+router.post('/:userid', async (req, res) => {
     try {
         const userId = req.params.userId;
 
-        const cart = await  Cart.findOne({ user_id: userId });
+        const cart = await Cart.findOne({ user_id: userId });
         if (!cart || cart.items.length === 0) {
             return res.status(404).json({ message: 'Cart is empty or not found' });
         }
 
-        const total_price =  cart.items.reduce((sum, item) => sum + item.item_id.price * item.quantity, 0)
+        const total_price = cart.items.reduce((sum, item) => sum + item.item_id.price * item.quantity, 0)
 
-        const newOrder = new Order({ user_id: userId, 
-            total_price, 
+        const newOrder = new Order({
+            user_id: userId,
+            total_price,
             items: cart.items.map(item => ({
-                item_id: item.item_id._id, 
-                quantity: item.quantity})) 
+                item_id: item.item_id._id,
+                quantity: item.quantity
+            }))
         });
 
         await newOrder.save();
@@ -34,7 +37,7 @@ app.post('/orders/:userid', async (req, res) => {
 })
 
 //visar upp den specifika datan från user id 
-app.get('/orders/:userId', async (req, res) => {
+router.get('/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
 
@@ -52,3 +55,5 @@ app.get('/orders/:userId', async (req, res) => {
         res.status(500).json({ message: 'Server Error', error });
     }
 })
+
+export default router;
