@@ -22,6 +22,7 @@ router.get('/:id', async (req, res) => {
 // Skapa en ny användare (POST)
 router.post('/register', async (req, res) => {
     try {
+
         const { first_name, last_name, email, street, zip_code, city, password } = req.body;
 
         if (!first_name || !last_name || !email || !street || !zip_code || !city || !password) {
@@ -42,7 +43,6 @@ router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const updatedUser = await User.findByIdAndUpdate(id, req.body, { new: true });
-
 
         if (!updatedUser) {
             return res.status(404).json({ message: 'User not found' });
@@ -72,6 +72,4 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
-
-
 
