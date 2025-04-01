@@ -92,11 +92,9 @@ JSON Body:
 
 **Response**
 ```
-[
-   {
-      "Exempel": Exmepel
-   }
-]
+{
+   "Exempel": Exmepel
+}
 ```
 **Felhantering**
 - 400 Bad Request - Om något inom JSON body saknas
@@ -116,12 +114,10 @@ JSON Body:
 
 **Response**
 ```
-[
-   {
-      "Exempel": Exmepel
-      "Exempel1": Exempel 1
-   }
-]
+{
+   "Exempel": Exmepel
+   "Exempel1": Exempel 1
+}
 ```
 **Felhantering**
 - 404 Not Found - Om item inte finns eller hittas
@@ -145,21 +141,212 @@ JSON Body:
 - 500 Internal Server Error - Om något oväntat går fel
 
 #### **2. Users (Användare)**
-- **Hämta alla användare**: `GET /users`
-- **Hämta en specifik användare**: `GET /users/:id`
-- **Skapa en ny användare**: `POST /users`
-- **Uppdatera en användare**: `PUT /users/:id`
-- **Ta bort en användare**: `DELETE /users/:id`
+
+##### **2.1 Hämta alla användare**: 
+
+**Request** `GET /users`
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **2.2 Hämta en specifik användare**: 
+
+**Request** `GET /users/:id`
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 404 Not Found - Om användaren inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **2.3 Skapa en ny användare**: 
+
+**Request** `POST /users`
+
+JSON Body:  
+```
+{
+   "Exempel": Exempel
+}
+```
+
+**Response**
+```
+{
+   "Exempel": Exmepel
+}
+```
+**Felhantering**
+- 400 Bad Request - Om något inom JSON body saknas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **2.4 Uppdatera en användare**: 
+
+**Request** `PUT /users/:id`
+
+JSON Body:
+```
+{
+   "Exempel": Exempel
+   "Exempel1": Exempel1
+}
+``` 
+
+**Response**
+```
+{
+   "Exempel": Exmepel
+   "Exempel1": Exempel 1
+}
+```
+**Felhantering**
+- 404 Not Found - Om användaren inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **2.5 Ta bort en användare**: 
+
+**Request** `DELETE /users/:id`
+
+**Response**
+```
+[
+   {
+      "message": "User deleted successfully"
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 404 Not Found - Om användaren inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
 
 #### **3. Varukorg**
-- **Hämta varukorg för en användare**: `GET /varukorg/:userId`
-- **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
-- **Uppdatera produkt i varukorg**: `PUT /varukorg/:userId/:itemId`
-- **Ta bort produkt från varukorg**: `DELETE /varukorg/:userId/:itemId`
+
+##### **3.1 Hämta varukorg för en användare**: 
+
+**Request** `GET /varukorg/:userId`
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **3.2 Lägg till produkt i varukorg**: 
+
+**Request** `POST /varukorg/:userId`
+
+JSON Body:
+```
+{
+   "Exempel": Exempel
+}
+```
+
+**Response**
+```
+{
+   "Exempel": Exmepel
+}
+```
+**Felhantering**
+- 400 Bad Request - Om något inom JSON body saknas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **3.3 Uppdatera produkt i varukorg**: 
+
+**Request** `PUT /varukorg/:userId/:itemId`
+
+JSON Body:
+```
+{
+   "Exempel": Exempel
+   "Exempel1": Exempel1
+}
+```
+
+**Response**
+```
+{
+   "Exempel": Exmepel
+   "Exempel1": Exmepel1
+}
+```
+**Felhantering**
+- 404 Not Found - Om produkten inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **3.4 Ta bort produkt från varukorg**: 
+
+**Request** `DELETE /varukorg/:userId/:itemId`
+
+**Response**
+```
+[
+   {
+      "message": "User deleted successfully"
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 404 Not Found - Om produkten inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
+
 
 #### **4. Orders**
-- **Hämtar items from cart.js genom en specifik user id:** `POST /orders/:userId`
-- **Visar upp den specifika datan från user id :** `GET /orders/:userId`
+
+##### **4.1 Hämtar items from cart.js genom en specifik user id:** 
+
+**Request** `POST /orders/:userId`
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 404 Not Found - Om cart inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **4.2 Visar upp den specifika datan från user id :** 
+
+**Request** `GET /orders/:userId`
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 400 Bad Request - Om något med userId saknas
+- 404 Not Found - Om användaren inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
 
 ## Testning
 För att testa API:et kan du använda:
