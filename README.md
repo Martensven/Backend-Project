@@ -47,11 +47,102 @@ Anrop kan göras via Postman eller Insomnia genom att skicka HTTP-requests till 
 Alla requests hanteras via `http://localhost:5000`
 
 #### **1. Items (Produkter)**
-- **Hämta alla produkter**: `GET /items`
-- **Hämta en specifik produkt**: `GET /items/:id`
-- **Lägg till en ny produkt**: `POST /items`
-- **Uppdatera en produkt**: `PUT /items/:id`
-- **Ta bort en produkt**: `DELETE /items/:id`
+
+##### **1.1 Hämta alla produkter**: 
+
+**Request** `GET /items`
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **1.2 Hämta en specifik produkt**: 
+
+**Request** `GET /items/:id`
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 404 Not Found - Om Item inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **1.3 Lägg till en ny produkt**:
+
+**Request** `POST /items`
+
+JSON Body:
+```
+{
+   "Exempel": Exempel
+}
+```
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 400 Bad Request - Om något inom JSON body saknas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **1.4 Uppdatera en produkt**: 
+
+**Request** `PUT /items/:id`
+
+JSON Body: 
+```
+{
+   "Exempel": Exempel, 
+   "Exempel1": Exempel 1
+}
+```
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+      "Exempel1": Exempel 1
+   }
+]
+```
+**Felhantering**
+- 404 Not Found - Om item inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **1.5 Ta bort en produkt**: 
+
+**Request** `DELETE /items/:id`
+
+**Response**
+```
+[
+   {
+      "message": "Item with ID [exempelID] has been deleted"
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 404 Not Found - Om item inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
 
 #### **2. Users (Användare)**
 - **Hämta alla användare**: `GET /users`
@@ -65,6 +156,10 @@ Alla requests hanteras via `http://localhost:5000`
 - **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
 - **Uppdatera produkt i varukorg**: `PUT /varukorg/:userId/:itemId`
 - **Ta bort produkt från varukorg**: `DELETE /varukorg/:userId/:itemId`
+
+#### **4. Orders**
+- **Hämtar items from cart.js genom en specifik user id:** `POST /orders/:userId`
+- **Visar upp den specifika datan från user id :** `GET /orders/:userId`
 
 ## Testning
 För att testa API:et kan du använda:

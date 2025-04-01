@@ -7,7 +7,7 @@ const router = express.Router();
 const app = express();
 
 //Hämtar items from cart.js genom en specifik user id
-router.post('/:userid', async (req, res) => {
+router.post('/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
 
