@@ -3,22 +3,29 @@ import { User } from '../models/users.js';
 
 const router = express.Router();
 
-// Hämta alla användare (GET)
-router.get('/', async (req, res) => {
+// Hämta användare
+router.get('/:id', async (req, res) => {
     try {
-        const users = await User.find();
-        res.json(users);
+        const { id } = req.params;
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(user);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch users', details: error.message });
+        res.status(500).json({ error: 'Failed to fetch user', details: error.message });
     }
 });
 
 // Skapa en ny användare (POST)
 router.post('/register', async (req, res) => {
     try {
-        const { first_name, last_name, street, zip_code, city, password } = req.body;
 
-        if (!first_name || !last_name || !street || !zip_code || !city || !password) {
+        const { first_name, last_name, email, street, zip_code, city, password } = req.body;
+
+        if (!first_name || !last_name || !email || !street || !zip_code || !city || !password) {
 
             return res.status(400).json({ error: 'All fields are required' });
         }
@@ -37,9 +44,11 @@ router.put('/:id', async (req, res) => {
         const { id } = req.params;
         const updatedUser = await User.findByIdAndUpdate(id, req.body, { new: true });
 
+<
         if (!updatedUser) {
             return res.status(404).json({ message: 'User not found' });
         }
+
 
         res.json({ message: 'User updated successfully', user: updatedUser });
     } catch (error) {
@@ -64,3 +73,4 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
+
