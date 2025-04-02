@@ -1,6 +1,10 @@
 import express from 'express';
 import { User } from '../models/users.js';
 
+// Middleware
+const app = express();
+app.use(express.json());
+
 const router = express.Router();
 
 // Hämta användare
@@ -30,6 +34,11 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'All fields are required' });
         }
 
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Failed to create user, E-mail already exists' });
+        }
+
         const newUser = new User(req.body);
         await newUser.save();
         res.status(201).json({ message: 'User created successfully', user: newUser });
@@ -44,7 +53,6 @@ router.put('/:id', async (req, res) => {
         const { id } = req.params;
         const updatedUser = await User.findByIdAndUpdate(id, req.body, { new: true });
 
-<
         if (!updatedUser) {
             return res.status(404).json({ message: 'User not found' });
         }
