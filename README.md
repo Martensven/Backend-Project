@@ -71,6 +71,22 @@ Alla requests hanteras via `http://localhost:4321`
 - **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
 - **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
 
+
+#### **4. About**
+- **Skapa ny about**: `POST /`
+- **Hämta about**: `GET /`
+- **Hämta specifik about entry**: `GET /:id`
+- **Uppdatera specifik about entry**: `PUT /:id`
+- **Radera specifik about entry**: `DELETE /:id`
+
+
+
+
+- **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
+
+
+
+
 ## Testning
 Anrop kan göras via Postman,Insomnia eller annan valfri tjänst genom att skicka HTTP-requests till servern.
 För att testa API:et kan du använda:
