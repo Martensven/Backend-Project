@@ -23,7 +23,12 @@ För att kunna köra detta projekt behöver du följande verktyg och beroenden:
 
 2. **Installera beroenden**
    ```sh
+<<<<<<< HEAD
    npm install
+=======
+   init -y
+   npm install express mongoose bcryptjs jsonwebtoken dotenv cookie-parser
+>>>>>>> 822566e78ab4fb5c60f27598d082966cc65b7730
    ```
 
 3. **Konfigurera miljövariabler**
@@ -48,6 +53,7 @@ Alla requests hanteras via `http://localhost:5000`
 
 #### **1. Items (Produkter)**
 
+<<<<<<< HEAD
 ##### **1.1 Hämta alla produkter**: 
 
 **Request** `GET /items`
@@ -59,10 +65,30 @@ Alla requests hanteras via `http://localhost:5000`
       "Exempel": Exmepel
    }
 ]
+=======
+- **Hämta alla produkter**: `GET /items`
+- **Hämta en specifik produkt med primär nyckel**: `GET /items/:id`
+- **Hämta en specifik produkt med id**: `GET /by-number/:id`
+**Response**
+```
+"success": true,
+    "count": 6,
+    "data": [
+        {
+            "_id": "67e5e2ffde5e397a40ab0842",
+            "id": 1,
+            "title": "Bryggkaffe",
+            "desc": "Bryggd på månadens bönor.",
+            "price": 39,
+            "createdAt": "2025-04-01T23:10:31.949Z"
+        },
+    ]
+>>>>>>> 822566e78ab4fb5c60f27598d082966cc65b7730
 ```
 **Felhantering**
 - 500 Internal Server Error - Om något oväntat går fel
 
+<<<<<<< HEAD
 ##### **1.2 Hämta en specifik produkt**: 
 
 **Request** `GET /items/:id`
@@ -311,12 +337,33 @@ JSON Body:
 **Felhantering**
 - 404 Not Found - Om produkten inte finns eller hittas
 - 500 Internal Server Error - Om något oväntat går fel
+=======
+
+#### **2. Users (Användare)**
+- **Hämta en specifik användare**: `GET /users/:id`
+- **Skapa en ny användare**: `POST /users/register`
+- **Uppdatera en användare**: `PUT /users/:id`
+- **Ta bort en användare**: `DELETE /users/:id`
 
 
-#### **4. Orders**
 
-##### **4.1 Hämtar items from cart.js genom en specifik user id:** 
+#### **3. Varukorg**
 
+- **Hämta varukorg för en användare**: `GET /varukorg/:userId`
+- **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
+- **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
+>>>>>>> 822566e78ab4fb5c60f27598d082966cc65b7730
+
+
+
+#### **4. About**
+- **Skapa ny about**: `POST /`
+- **Hämta about**: `GET /`
+- **Hämta specifik about entry**: `GET /:id`
+- **Uppdatera specifik about entry**: `PUT /:id`
+- **Radera specifik about entry**: `DELETE /:id`
+
+<<<<<<< HEAD
 **Request** `POST /orders/:userId`
 
 **Response**
@@ -347,6 +394,9 @@ JSON Body:
 - 400 Bad Request - Om något med userId saknas
 - 404 Not Found - Om användaren inte finns eller hittas
 - 500 Internal Server Error - Om något oväntat går fel
+=======
+- **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
+>>>>>>> 822566e78ab4fb5c60f27598d082966cc65b7730
 
 ## Testning
 För att testa API:et kan du använda:

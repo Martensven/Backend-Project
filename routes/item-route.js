@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
-        
+
         if (!item) {
             return res.status(404).json({
                 success: false,
@@ -48,7 +48,7 @@ router.get('/:id', async (req, res) => {
 router.get('/by-number/:id', async (req, res) => {
     try {
         const item = await Item.findOne({ id: Number(req.params.id) });
-        
+
         if (!item) {
             return res.status(404).json({
                 success: false,
