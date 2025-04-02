@@ -31,8 +31,6 @@
 router.post('/:userId', async (req, res) => {
     const { id, quantity } = req.body;
 
-    console.log("Received id:", id);
-
     // Validera input
     if (!id || !quantity || quantity < 1) {
         return res.status(400).json({ message: 'Invalid item data' });
@@ -79,32 +77,32 @@ router.post('/:userId', async (req, res) => {
 });
 
 
-    // GET Route för att hämta kundvagn
-    router.get('/:userId', async (req, res) => {
-        try {
-            const cart = await Cart.findOne({ user_id: req.params.userId }).populate('items.item_id');
-            if (!cart) return res.status(404).json({ message: 'Cart not found' });
-            res.json(cart);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching cart', error });
-        }
-    });
+// GET Route för att hämta kundvagn
+router.get('/:userId', async (req, res) => {
+    try {
+        const cart = await Cart.findOne({ user_id: req.params.userId }).populate('items.item_id');
+        if (!cart) return res.status(404).json({ message: 'Cart not found' });
+        res.json(cart);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching cart', error });
+    }
+});
 
-    // DELETE Route för att ta bort produkt från kundvagn
-    router.delete('/:userId/:itemId', async (req, res) => {
-        try {
-            const cart = await Cart.findOne({ user_id: req.params.userId });
+// DELETE Route för att ta bort produkt från kundvagn
+router.delete('/:userId/:itemId', async (req, res) => {
+    try {
+        const cart = await Cart.findOne({ user_id: req.params.userId });
 
-            if (!cart) return res.status(404).json({ message: 'Cart not found' });
+        if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
-            // Ta bort produkt från kundvagnen
-            cart.items = cart.items.filter(item => item.item_id.toString() !== req.params.itemId);
-            await cart.save();
+        // Ta bort produkt från kundvagnen
+        cart.items = cart.items.filter(item => item.item_id.toString() !== req.params.itemId);
+        await cart.save();
 
-            res.json(cart);
-        } catch (error) {
-            res.status(500).json({ message: 'Error removing item', error });
-        }
-    });
+        res.json(cart);
+    } catch (error) {
+        res.status(500).json({ message: 'Error removing item', error });
+    }
+});
 
     export default router;
