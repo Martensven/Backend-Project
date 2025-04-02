@@ -34,14 +34,14 @@ router.post('/:userId', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error });
     }
-})
+});
 
-//visar upp den specifika datan från user id 
+//visar upp den specifika datan från userId 
 router.get('/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
 
-        if (mongoose.Type.ObjectId.isValid(userId)) {
+        if (!mongoose.Type.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: 'Invalid user ID' });
         }
 
@@ -54,6 +54,50 @@ router.get('/:userId', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error });
     }
+});
+
+//GET Order ID
+router.get('/:orderId', async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+
+        if (!mongoose.Type.ObjectId.isValid(orderId)) {
+            return res.status(400).json({ message: 'Invalid order ID' });
+        }
+
+        const orders = await Order.find({ orderId: orderId }).populate('items.item_id');
+        if (!orders || orders.length === 0) {
+            return res.status(404).json({ message: 'Orders not found' });
+        }
+
+        res.status(200).json(orders);
+    } catch (error) {
+        res.status (500).json({ message: 'Server Error', error });
+    }
 })
+
+//PUT för Complete och Cancelled 
+router.put('/:orderId/status', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+
+        if (!status ||['Completed', 'Cancelled'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status, must be "Completed" or "Cancelled"' });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not Found' });
+        }
+
+        order.status = status;
+        await order.save();
+
+        res.status(200).json({ message: 'Order status has updated successfully', order });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal Server Error', error: error.message });
+    }
+});
 
 export default router;
