@@ -37,6 +37,7 @@ För att kunna köra detta projekt behöver du följande verktyg och beroenden:
 Alla requests hanteras via `http://localhost:4321`
 
 #### **1. Items (Produkter)**
+
 - **Hämta alla produkter**: `GET /items`
 - **Hämta en specifik produkt med primär nyckel**: `GET /items/:id`
 - **Hämta en specifik produkt med id**: `GET /by-number/:id`
@@ -66,10 +67,13 @@ Alla requests hanteras via `http://localhost:4321`
 - **Ta bort en användare**: `DELETE /users/:id`
 
 
+
 #### **3. Varukorg**
+
 - **Hämta varukorg för en användare**: `GET /varukorg/:userId`
 - **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
 - **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
+
 
 ## Testning
 Anrop kan göras via Postman,Insomnia eller annan valfri tjänst genom att skicka HTTP-requests till servern.
