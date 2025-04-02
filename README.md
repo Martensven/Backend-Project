@@ -17,64 +17,65 @@ För att kunna köra detta projekt behöver du följande verktyg och beroenden:
 
 1. **Kloning av projektet**
    ```sh
-   git clone <repository-url>
-   cd <project-folder>
+   git clone <https://github.com/Martensven/Backend-Project.git>
+   cd <BACKEND-PROJEKT>
    ```
 
 2. **Installera beroenden**
    ```sh
-   npm install
+   init y
+   npm install express
+   npm install mongoose
    ```
-
-3. **Konfigurera miljövariabler**
-   - Skapa en `.env`-fil i root-mappen och fyll i nödvändiga variabler, t.ex.:
-     ```env
-     PORT=5000
-     MONGO_URI=mongodb://localhost:27017/din-databas
-     JWT_SECRET=din-hemliga-nyckel
-     ```
 
 4. **Starta servern**
    ```sh
    npm start
    ```
-   Servern körs nu på `http://localhost:5000` (om inget annat anges i `.env`)
-
-## Användning av API:et
-Anrop kan göras via Postman eller Insomnia genom att skicka HTTP-requests till servern.
 
 ### Endpoints
-Alla requests hanteras via `http://localhost:5000`
+Alla requests hanteras via `http://localhost:4321`
 
 #### **1. Items (Produkter)**
 - **Hämta alla produkter**: `GET /items`
-- **Hämta en specifik produkt**: `GET /items/:id`
-- **Lägg till en ny produkt**: `POST /items`
-- **Uppdatera en produkt**: `PUT /items/:id`
-- **Ta bort en produkt**: `DELETE /items/:id`
+- **Hämta en specifik produkt med primär nyckel**: `GET /items/:id`
+- **Hämta en specifik produkt med id**: `GET /by-number/:id`
+**Response**
+```
+"success": true,
+    "count": 6,
+    "data": [
+        {
+            "_id": "67e5e2ffde5e397a40ab0842",
+            "id": 1,
+            "title": "Bryggkaffe",
+            "desc": "Bryggd på månadens bönor.",
+            "price": 39,
+            "createdAt": "2025-04-01T23:10:31.949Z"
+        },
+    ]
+```
+**Felhantering**
+- 500 Internal Server Error - Om något oväntat går fel
+
 
 #### **2. Users (Användare)**
-- **Hämta alla användare**: `GET /users`
 - **Hämta en specifik användare**: `GET /users/:id`
-- **Skapa en ny användare**: `POST /users`
+- **Skapa en ny användare**: `POST /users/register`
 - **Uppdatera en användare**: `PUT /users/:id`
 - **Ta bort en användare**: `DELETE /users/:id`
+
 
 #### **3. Varukorg**
 - **Hämta varukorg för en användare**: `GET /varukorg/:userId`
 - **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
-- **Uppdatera produkt i varukorg**: `PUT /varukorg/:userId/:itemId`
-- **Ta bort produkt från varukorg**: `DELETE /varukorg/:userId/:itemId`
+- **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
 
 ## Testning
+Anrop kan göras via Postman,Insomnia eller annan valfri tjänst genom att skicka HTTP-requests till servern.
 För att testa API:et kan du använda:
 - **Postman**: Skapa en ny `Collection` och lägg till anrop till ovanstående endpoints.
 - **Insomnia**: Skapa en ny `Workspace` och definiera endpoints där.
-- **cURL**: Kör kommandon i terminalen, t.ex.:
-  ```sh
-  curl -X GET http://localhost:5000/items
-  ```
 
-## Slutord
-Se till att ha en aktiv MongoDB-databas och rätt konfigurerade miljövariabler för att API:et ska fungera korrekt. Lycka till med utvecklingen!
+
 

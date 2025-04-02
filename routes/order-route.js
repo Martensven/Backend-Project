@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import mongoose from 'mongoose';
-import { Order } from './models/orders.js';
-import { Cart } from './models/cart.js';
+import { Order } from '../models/orders.js';
+import { Cart } from '../models/cart.js';
 
 const router = express.Router();
 const app = express();
