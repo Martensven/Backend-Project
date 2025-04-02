@@ -74,7 +74,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Middleware för att verifiera JWT-token
-const authMiddleware = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
     const token = req.header('Authorization');
     if (!token) return res.status(401).json({ error: 'Access denied. No token provided.' });
 
@@ -87,7 +87,17 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
+// Exempel på en skyddad route
+router.get('/profile', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId).select('-password');
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch profile', details: error.message });
+    }
+});
 
 export default router;
 
