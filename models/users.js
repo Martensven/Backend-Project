@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
     street: { type: String, required: true },
     zip_code: { type: String, required: true },
     city: { type: String, required: true },
-    password: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
 }, { timestamps: true, minimize: false })
 
 export const User = mongoose.model('User', userSchema)
