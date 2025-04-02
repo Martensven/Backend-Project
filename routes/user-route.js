@@ -7,9 +7,6 @@ import { User } from '../models/users.js';
 dotenv.config();
 const router = express.Router();
 
-
-
-
 // Registrera en ny användare
 router.post('/register', async (req, res) => {
     try {
@@ -100,4 +97,3 @@ router.get('/profile', authMiddleware, async (req, res) => {
 });
 
 export default router;
-

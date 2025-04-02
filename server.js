@@ -7,7 +7,6 @@ import itemRoutes from './routes/item-route.js';
 import orderRoutes from './routes/order-route.js';
 import cartRoutes from './routes/cart-route.js';
 import cookieParser from 'cookie-parser';
-
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -35,12 +34,3 @@ connectDB()
     .catch(err => {
         console.error('Failed to connect to database:', err);
     });
-
-
-
-
-
-
-
-
-

@@ -78,7 +78,6 @@ router.post('/:userId', async (req, res) => {
     }
 });
 
-
     // GET Route för att hämta kundvagn
     router.get('/:userId', async (req, res) => {
         try {
