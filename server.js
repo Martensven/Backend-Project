@@ -7,6 +7,7 @@ import itemRoutes from './routes/item-route.js';
 import orderRoutes from './routes/order-route.js';
 import cartRoutes from './routes/cart-route.js';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -18,6 +19,11 @@ const PORT = 4321;
 app.use(middleWare());
 app.use(express.json());
 app.use(cookieParser());
+app.use(session({
+    secret: 'sample-secret',
+    resave: false,
+    saveUninitialized: false
+}));
 await middleWare();
 
 // Routes
@@ -36,6 +42,11 @@ connectDB()
     .catch(err => {
         console.error('Failed to connect to database:', err);
     });
+
+app.get('/', (req, res) => {
+    res.send('Hello world!')
+})
+
 
 
 
