@@ -86,16 +86,16 @@ router.get('/:userId', async (req, res) => {
         if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
         // Beräkna priser
-        const enhancedItems = cart.items.map(item => ({
+        const calcedItems = cart.items.map(item => ({
             ...item.toObject(),
             totalPrice: item.item_id.price * item.quantity
         }));
 
-        const grandTotal = enhancedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+        const grandTotal = calcedItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
         res.json({
             ...cart.toObject(),
-            items: enhancedItems,
+            items: calcedItems,
             grandTotal
         });
 
