@@ -1,8 +1,5 @@
 import express from 'express';
 
-
 export const middleWare = () => {
-    const app = express();
-    app.use(express.json());
+    return express.json(); // Returnerar bara express.json() middleware
 }
-
