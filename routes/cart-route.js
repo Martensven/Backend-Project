@@ -80,13 +80,30 @@ router.post('/:userId', async (req, res) => {
 // GET Route för att hämta kundvagn
 router.get('/:userId', async (req, res) => {
     try {
-        const cart = await Cart.findOne({ user_id: req.params.userId }).populate('items.item_id');
+        const cart = await Cart.findOne({ user_id: req.params.userId })
+            .populate('items.item_id', 'title price description');
+        
         if (!cart) return res.status(404).json({ message: 'Cart not found' });
-        res.json(cart);
+
+        // Beräkna priser
+        const enhancedItems = cart.items.map(item => ({
+            ...item.toObject(),
+            totalPrice: item.item_id.price * item.quantity
+        }));
+
+        const grandTotal = enhancedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+
+        res.json({
+            ...cart.toObject(),
+            items: enhancedItems,
+            grandTotal
+        });
+
     } catch (error) {
         res.status(500).json({ message: 'Error fetching cart', error });
     }
 });
+
 
 router.put('/:userId/plus/:itemId', async (req, res) => {
     try {
