@@ -1,31 +1,31 @@
-    import express from 'express';
-    import mongoose from 'mongoose';
-    import { Cart } from '../models/cart.js';
-    import fs from 'fs';
-    import path from 'path';
-    import { fileURLToPath } from 'url';
+import express from 'express';
+import mongoose from 'mongoose';
+import { Cart } from '../models/cart.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-    const router = express.Router();
+const router = express.Router();
 
-    // Hantera _dirname i ES-moduler
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
+// Hantera _dirname i ES-moduler
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-    const isValidMenuItem = async (itemId) => {
-        try {
-            // Anropar API ENDPOINT för att hämta items
-            const response = await fetch(`http://localhost:4321/items/${itemId}`);
-            
-            // Kolla om produkten finns
-            if (!response.ok) return false;
-    
-            const item = await response.json();
-            return item !== null;
-        } catch (error) {
-            console.error("Error checking item:", error);
-            return false;
-        }
-    };
+const isValidMenuItem = async (itemId) => {
+    try {
+        // Anropar API ENDPOINT för att hämta items
+        const response = await fetch(`http://localhost:4321/items/${itemId}`);
+
+        // Kolla om produkten finns
+        if (!response.ok) return false;
+
+        const item = await response.json();
+        return item !== null;
+    } catch (error) {
+        console.error("Error checking item:", error);
+        return false;
+    }
+};
 
 // POST Route för att lägga till produkt i kundvagn
 router.post('/:userId', async (req, res) => {
@@ -105,6 +105,58 @@ router.get('/:userId', async (req, res) => {
 });
 
 
+router.put('/:userId/plus/:itemId', async (req, res) => {
+    try {
+        //Hitta kundvagn
+        const cart = await Cart.findOne({ user_id: req.params.userId });
+
+        if (!cart) return res.status(404).json({ message: 'Cart not found' });
+
+        //Hitta item i kundvagn
+        const item = cart.items.find(item => item.item_id.toString() === req.params.itemId)
+
+        if (!item) { return res.status(404).json({ message: 'item not found' }); }
+
+        //Ökar med 1
+        item.quantity += 1;
+
+        //spara
+        await cart.save();
+
+        //Visa meddelande när vi lyckas lägga till item
+        res.json({ message: 'Added one more!', cart });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error adding quantity of item!', error });
+    }
+})
+
+router.put('/:userId/minus/:itemId', async (req, res) => {
+    try {
+        //Hitta kundvagn
+        const cart = await Cart.findOne({ user_id: req.params.userId });
+
+        if (!cart) return res.status(404).json({ message: 'Cart not found' });
+
+        //Hitta item i kundvagn
+        const item = cart.items.find(item => item.item_id.toString() === req.params.itemId)
+
+        if (!item) { return res.status(404).json({ message: 'item not found' }); }
+
+        //Minska kvantitet med 1
+        item.quantity -= 1;
+
+        //spara
+        await cart.save();
+
+        //Visa meddelande när vi lyckas tagit bort item
+        res.json({ message: 'Took one away!', cart });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error removing quantity of item!', error });
+    }
+})
+
 // DELETE Route för att ta bort produkt från kundvagn
 router.delete('/:userId/:itemId', async (req, res) => {
     try {
@@ -122,4 +174,4 @@ router.delete('/:userId/:itemId', async (req, res) => {
     }
 });
 
-    export default router;
+export default router;
