@@ -9,6 +9,7 @@ import cartRoutes from './routes/cart-route.js';
 import aboutRoutes from './routes/about-route.js';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -43,3 +44,7 @@ connectDB()
     .catch(err => {
         console.error('Failed to connect to database:', err);
     });
+
+app.get('/', (req, res) => {
+    res.send('Hello world!')
+})
