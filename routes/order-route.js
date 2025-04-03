@@ -101,3 +101,5 @@ router.put('/:orderId/status', async (req, res) => {
 });
 
 export default router;
+
+// Kolla auth, kolla runt lite på allt, kolla lösenord och sånt
