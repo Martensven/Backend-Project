@@ -16,6 +16,7 @@ const app = express(); // Skapa app först!
 const PORT = 4321;
 
 // Middleware
+app.use(middleWare());
 app.use(express.json());
 app.use(cookieParser());
 app.use(session({
