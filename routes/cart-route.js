@@ -14,8 +14,8 @@ const calculateCampaigns = (cartItems) => {
     
     // 1. 10% rabatt till 30 juni
     if (now <= juneEnd) {
-        const subtotal = cartItems.reduce((sum, item) => sum + (item.item_id.price * item.quantity), 0);
-        const discount = subtotal * 0.1;
+        const orignialPrice = cartItems.reduce((sum, item) => sum + (item.item_id.price * item.quantity), 0);
+        const discount = orignialPrice * 0.1;
         totalDiscount += discount;
         appliedCampaigns.push({
             name: "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
@@ -133,17 +133,17 @@ router.get('/:userId', async (req, res) => {
             totalPrice: item.item_id.price * item.quantity
         }));
 
-        const subtotal = calcedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+        const orignialPrice = calcedItems.reduce((sum, item) => sum + item.totalPrice, 0);
         
         // Beräknar kampanjer
         const { totalDiscount, appliedCampaigns } = calculateCampaigns(cart.items);
-        const grandTotal = Math.max(0, subtotal - totalDiscount); // Säkerställ att vi inte får negativt total
+        const newPrice = Math.max(0, orignialPrice - totalDiscount); // inga negativa totalsummor
 
         res.json({
             ...cart.toObject(),
             items: calcedItems,
-            subtotal,
-            grandTotal,
+            orignialPrice,
+            newPrice,
             totalDiscount,
             appliedCampaigns
         });
