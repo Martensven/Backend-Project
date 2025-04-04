@@ -1,21 +1,21 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import { Cart } from '../models/cart.js';
-
+import { Item } from '../models/items.js';
 
 const router = express.Router();
 
-const calculateCampaigns = (cartItems) => {
+// Fixed kampanjer som finns för affären
+const calculateCampaigns = (items) => {
     const now = new Date();
-    const juneEnd = new Date(now.getFullYear(), 5, 30); // Från och med idag till 30 juni
+    const juneEnd = new Date(now.getFullYear(), 5, 30); // till slutet av juni
     
     let totalDiscount = 0;
     const appliedCampaigns = [];
+    const originalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    // 1. 10% rabatt till 30 juni
+    // 1. 10% rabatt under perioden (idag till 30 juni)
     if (now <= juneEnd) {
-        const orignialPrice = cartItems.reduce((sum, item) => sum + (item.item_id.price * item.quantity), 0);
-        const discount = orignialPrice * 0.1;
+        const discount = originalPrice * 0.1;
         totalDiscount += discount;
         appliedCampaigns.push({
             name: "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
@@ -25,7 +25,7 @@ const calculateCampaigns = (cartItems) => {
     }
     
     // 2. 50 kr rabatt om mer än 5 varor
-    const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
     if (totalQuantity > 5) {
         totalDiscount += 50;
         appliedCampaigns.push({
@@ -36,12 +36,12 @@ const calculateCampaigns = (cartItems) => {
     }
     
     // 3. 10 kr rabatt på bryggkaffe
-    const coffeeDiscountItems = cartItems.filter(item => 
-        item.item_id.title.toLowerCase().includes('bryggkaffe')
+    const coffeeItems = items.filter(item => 
+        item.title.toLowerCase().includes('bryggkaffe')
     );
     
-    if (coffeeDiscountItems.length > 0) {
-        const discount = coffeeDiscountItems.length * 10;
+    if (coffeeItems.length > 0) {
+        const discount = coffeeItems.reduce((sum, item) => sum + (10 * item.quantity), 0);
         totalDiscount += discount;
         appliedCampaigns.push({
             name: "10 kr rabatt på bryggkaffe",
@@ -50,176 +50,153 @@ const calculateCampaigns = (cartItems) => {
         });
     }
     
-    return { totalDiscount, appliedCampaigns };
+    return { 
+        totalDiscount: Math.min(totalDiscount, originalPrice), // Förhindra negativa summor
+        appliedCampaigns,
+        originalPrice,
+        newPrice: Math.max(0, originalPrice - totalDiscount)
+    };
 };
 
-const isValidMenuItem = async (itemId) => {
+// Lägg till vara i varukorgen
+router.post('/add', async (req, res) => {
     try {
-        // Anropar API ENDPOINT för att hämta items
-        const response = await fetch(`http://localhost:4321/items/${itemId}`);
-
-        // Kolla om produkten finns
-        if (!response.ok) return false;
-
-        const item = await response.json();
-        return item !== null;
-    } catch (error) {
-        console.error("Error checking item:", error);
-        return false;
-    }
-};
-
-// POST Route för att lägga till produkt i kundvagn
-router.post('/:userId', async (req, res) => {
-    const { id, quantity } = req.body;
-
-    // Validera input
-    if (!id || !quantity || quantity < 1) {
-        return res.status(400).json({ message: 'Invalid item data' });
-    }
-
-    // Kontrollera att produkten finns i menyn
-    if (!(await isValidMenuItem(id))) {
-        return res.status(400).json({ message: 'Invalid product: Not on the menu' });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ message: 'Invalid product id' });
-    }
-
-    try {
-        // Hämta kundvagn för användaren
-        let cart = await Cart.findOne({ user_id: req.params.userId });
-
-        // Om ingen kundvagn finns, skapa en ny
-        if (!cart) {
-            cart = new Cart({ user_id: req.params.userId, items: [] });
+        const { item_id, quantity } = req.body;
+        if (!item_id || !quantity) {
+            return res.status(400).json({ message: 'Item ID and quantity are required' });
         }
 
-        // Omvandla id till ObjectId
-        const itemIdObject = new mongoose.Types.ObjectId(id);
+        const item = await Item.findById(item_id);
+        if (!item) {
+            return res.status(404).json({ message: 'Item not found' });
+        }
 
-        // Kolla om produkten redan finns i kundvagnen
-        const existingItem = cart.items.find(item => item.item_id.toString() === itemIdObject.toString());
+        let cart;
+        if (req.user) {
+            cart = await Cart.findOne({ user_id: req.user.userId });
+            if (!cart) {
+                cart = new Cart({ user_id: req.user.userId, items: [] });
+            }
+        } else {
+            if (!req.session.cart) {
+                req.session.cart = { items: [] };
+            }
+            cart = req.session.cart;
+        }
+
+        const existingItem = cart.items.find(i => i.item_id.toString() === item_id);
         if (existingItem) {
-            // Om produkten finns, öka kvantiteten
             existingItem.quantity += quantity;
         } else {
-            // Annars lägg till produkten i kundvagnen
-            cart.items.push({ item_id: itemIdObject, quantity });
+            cart.items.push({ item_id, quantity });
         }
 
-        // Spara kundvagnen i databasen
-        await cart.save();
-        res.json(cart);
+        if (req.user) {
+            await cart.save();
+        } else {
+            req.session.cart = cart;
+        }
+
+        res.status(200).json({ message: 'Item added to cart', cart });
     } catch (error) {
-        console.error('Error details:', error);  // Logga detaljer om fel
-        res.status(500).json({ message: 'Error updating cart', error: error.message });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
-
-// GET Route för att hämta kundvagn
-router.get('/:userId', async (req, res) => {
+// Hämta varukorg med kampanjberäkning
+router.get('/', async (req, res) => {
     try {
-        const cart = await Cart.findOne({ user_id: req.params.userId })
-            .populate('items.item_id', 'title price description');
-        
-        if (!cart) return res.status(404).json({ message: 'Cart not found' });
+        let cart;
+        if (req.session.userId) {
+            cart = await Cart.findOne({ user_id: req.session.userId })
+                .populate('items.item_id', 'title price desc');
+        } else {
+            cart = req.session.cart || { items: [] };
+        }
 
-        // Beräkna grundpriser
-        const calcedItems = cart.items.map(item => ({
-            ...item.toObject(),
-            totalPrice: item.item_id.price * item.quantity
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+        const enhancedItems = await Promise.all(cart.items.map(async item => {
+            let itemObject;
+
+            if (typeof item.item_id === 'object' && item.item_id !== null) {
+                itemObject = item.item_id.toObject ? item.item_id.toObject() : item.item_id;
+            } else {
+                itemObject = await Item.findById(item.item_id).lean() || { 
+                    _id: item.item_id, 
+                    title: "Unknown", 
+                    price: 0, 
+                    desc: "" 
+                };
+            }
+
+            return {
+                ...itemObject,
+                quantity: item.quantity,
+                totalPrice: itemObject.price * item.quantity
+            };
         }));
 
-        const orignialPrice = calcedItems.reduce((sum, item) => sum + item.totalPrice, 0);
-        
-        // Beräknar kampanjer
-        const { totalDiscount, appliedCampaigns } = calculateCampaigns(cart.items);
-        const newPrice = Math.max(0, orignialPrice - totalDiscount); // inga negativa totalsummor
+        // Beräkna kampanjer
+        const { totalDiscount, appliedCampaigns, originalPrice, newPrice } = 
+            calculateCampaigns(enhancedItems);
 
         res.json({
-            ...cart.toObject(),
-            items: calcedItems,
-            orignialPrice,
-            newPrice,
-            totalDiscount,
-            appliedCampaigns
+            cart: {
+                items: enhancedItems,
+                originalPrice,
+                newPrice,
+                totalDiscount,
+                appliedCampaigns
+            }
         });
-
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching cart', error });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
-
-router.put('/:userId/plus/:itemId', async (req, res) => {
+// Uppdatera/ta bort vara från varukorgen
+router.post('/remove', async (req, res) => {
     try {
-        //Hitta kundvagn
-        const cart = await Cart.findOne({ user_id: req.params.userId });
+        const { item_id } = req.body;
+        if (!item_id) {
+            return res.status(400).json({ message: 'Item ID is required' });
+        }
 
-        if (!cart) return res.status(404).json({ message: 'Cart not found' });
+        let cart;
+        if (req.session.userId) {
+            cart = await Cart.findOne({ user_id: req.session.userId });
+            if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
-        //Hitta item i kundvagn
-        const item = cart.items.find(item => item.item_id.toString() === req.params.itemId)
+            const itemIndex = cart.items.findIndex(i => i.item_id.toString() === item_id);
+            if (itemIndex !== -1) {
+                if (cart.items[itemIndex].quantity > 1) {
+                    cart.items[itemIndex].quantity -= 1;
+                } else {
+                    cart.items.splice(itemIndex, 1);
+                }
+                await cart.save();
+            }
+        } else {
+            if (!req.session.cart) req.session.cart = { items: [] };
+            cart = req.session.cart;
 
-        if (!item) { return res.status(404).json({ message: 'item not found' }); }
+            const itemIndex = cart.items.findIndex(i => i.item_id === item_id);
+            if (itemIndex !== -1) {
+                if (cart.items[itemIndex].quantity > 1) {
+                    cart.items[itemIndex].quantity -= 1;
+                } else {
+                    cart.items.splice(itemIndex, 1);
+                }
+                req.session.cart = cart;
+            }
+        }
 
-        //Ökar med 1
-        item.quantity += 1;
-
-        //spara
-        await cart.save();
-
-        //Visa meddelande när vi lyckas lägga till item
-        res.json({ message: 'Added one more!', cart });
-
+        res.json({ message: 'Item quantity updated', cart });
     } catch (error) {
-        res.status(500).json({ message: 'Error adding quantity of item!', error });
-    }
-})
-
-router.put('/:userId/minus/:itemId', async (req, res) => {
-    try {
-        //Hitta kundvagn
-        const cart = await Cart.findOne({ user_id: req.params.userId });
-
-        if (!cart) return res.status(404).json({ message: 'Cart not found' });
-
-        //Hitta item i kundvagn
-        const item = cart.items.find(item => item.item_id.toString() === req.params.itemId)
-
-        if (!item) { return res.status(404).json({ message: 'item not found' }); }
-
-        //Minska kvantitet med 1
-        item.quantity -= 1;
-
-        //spara
-        await cart.save();
-
-        //Visa meddelande när vi lyckas tagit bort item
-        res.json({ message: 'Took one away!', cart });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error removing quantity of item!', error });
-    }
-})
-
-// DELETE Route för att ta bort produkt från kundvagn
-router.delete('/:userId/:itemId', async (req, res) => {
-    try {
-        const cart = await Cart.findOne({ user_id: req.params.userId });
-
-        if (!cart) return res.status(404).json({ message: 'Cart not found' });
-
-        // Ta bort produkt från kundvagnen
-        cart.items = cart.items.filter(item => item.item_id.toString() !== req.params.itemId);
-        await cart.save();
-
-        res.json(cart);
-    } catch (error) {
-        res.status(500).json({ message: 'Error removing item', error });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
