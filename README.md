@@ -24,7 +24,9 @@ För att kunna köra detta projekt behöver du följande verktyg och beroenden:
 2. **Installera beroenden**
    ```sh
    init -y
-   npm install express mongoose bcryptjs jsonwebtoken dotenv cookie-parser
+
+   npm install express mongoose bcryptjs jsonwebtoken dotenv cookie-parser express-session
+
    ```
 
 4. **Starta servern**
@@ -89,6 +91,5 @@ Anrop kan göras via Postman,Insomnia eller annan valfri tjänst genom att skick
 För att testa API:et kan du använda:
 - **Postman**: Skapa en ny `Collection` och lägg till anrop till ovanstående endpoints.
 - **Insomnia**: Skapa en ny `Workspace` och definiera endpoints där.
-
 
 
