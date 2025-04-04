@@ -26,7 +26,6 @@ app.use(session({
     resave: false,
     saveUninitialized: false
 }));
-await middleWare();
 
 // Routes
 app.use('/user', userRoutes);
@@ -49,13 +48,3 @@ connectDB()
 app.get('/', (req, res) => {
     res.send('Hello world!')
 })
-
-
-
-
-
-
-
-
-
-

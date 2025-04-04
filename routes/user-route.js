@@ -1,14 +1,13 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { User } from '../models/users.js';
 
+
 dotenv.config();
 const router = express.Router();
-
-
-
 
 // Registrera en ny användare
 router.post('/register', async (req, res) => {
