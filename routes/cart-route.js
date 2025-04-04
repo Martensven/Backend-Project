@@ -2,23 +2,58 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { Cart } from '../models/cart.js';
 import { Item } from '../models/items.js';
-import { User } from '../models/users.js';
-import path from 'path';
-import {fileURLToPath} from 'url'
-
-const router = express.Router();
 
 // Lägg till vara i varukorgen
 router.post('/add', async (req, res) => {
-
-import path from 'path';
-import { fileURLToPath } from 'url';
-
 const router = express.Router();
 
-// Hantera _dirname i ES-moduler
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const calculateCampaigns = (cartItems) => {
+    const now = new Date();
+    const juneEnd = new Date(now.getFullYear(), 5, 30); // Från och med idag till 30 juni
+    
+    let totalDiscount = 0;
+    const appliedCampaigns = [];
+    
+    // 1. 10% rabatt till 30 juni
+    if (now <= juneEnd) {
+        const orignialPrice = cartItems.reduce((sum, item) => sum + (item.item_id.price * item.quantity), 0);
+        const discount = orignialPrice * 0.1;
+        totalDiscount += discount;
+        appliedCampaigns.push({
+            name: "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
+            discount: discount,
+            type: "percentage"
+        });
+    }
+    
+    // 2. 50 kr rabatt om mer än 5 varor
+    const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    if (totalQuantity > 5) {
+        totalDiscount += 50;
+        appliedCampaigns.push({
+            name: "Rabatt på storköp (50 kr för 5+ varor)",
+            discount: 50,
+            type: "fixed"
+        });
+    }
+    
+    // 3. 10 kr rabatt på bryggkaffe
+    const coffeeDiscountItems = cartItems.filter(item => 
+        item.item_id.title.toLowerCase().includes('bryggkaffe')
+    );
+    
+    if (coffeeDiscountItems.length > 0) {
+        const discount = coffeeDiscountItems.length * 10;
+        totalDiscount += discount;
+        appliedCampaigns.push({
+            name: "10 kr rabatt på bryggkaffe",
+            discount: discount,
+            type: "item_discount"
+        });
+    }
+    
+    return { totalDiscount, appliedCampaigns };
+};
 
 const isValidMenuItem = async (itemId) => {
     try {
@@ -117,6 +152,26 @@ router.get('/', async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
+        // Beräkna grundpriser
+        const calcedItems = cart.items.map(item => ({
+            ...item.toObject(),
+            totalPrice: item.item_id.price * item.quantity
+        }));
+
+        const orignialPrice = calcedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+        
+        // Beräknar kampanjer
+        const { totalDiscount, appliedCampaigns } = calculateCampaigns(cart.items);
+        const newPrice = Math.max(0, orignialPrice - totalDiscount); // inga negativa totalsummor
+
+        res.json({
+            ...cart.toObject(),
+            items: calcedItems,
+            orignialPrice,
+            newPrice,
+            totalDiscount,
+            appliedCampaigns
+
         const enhancedItems = await Promise.all(cart.items.map(async item => {
             let itemObject;
         
@@ -143,6 +198,7 @@ router.get('/', async (req, res) => {
                 items: enhancedItems,
                 grandTotal
             }
+
         });
 
     } catch (error) {
