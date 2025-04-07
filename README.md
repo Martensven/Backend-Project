@@ -61,7 +61,7 @@ Alla requests hanteras via `http://localhost:4321`
 - 500 Internal Server Error - Om något oväntat går fel
 
 
-#### **2. Users (Användare)**
+#### **2. Users**
 - **Hämta en specifik användare**: `GET /users/:id`
 - **Skapa en ny användare**: `POST /users/register`
 - **Uppdatera en användare**: `PUT /users/:id`
@@ -69,7 +69,7 @@ Alla requests hanteras via `http://localhost:4321`
 
 
 
-#### **3. Varukorg**
+#### **3. Varukorg ()**
 
 - **Hämta varukorg för en användare**: `GET /varukorg/:userId`
 - **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
