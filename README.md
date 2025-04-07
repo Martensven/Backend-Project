@@ -62,7 +62,7 @@ Alla requests hanteras via `http://localhost:4321`
 
 
 #### **2. Users (Användare)**
-## 🔐 Autentisering
+##  Autentisering
 
 Autentisering sker via **JWT tokens**. Vid inloggning får klienten en token som skickas med som header i skyddade endpoints (om sådana finns):
 
@@ -72,9 +72,9 @@ Authorization: Bearer <JWT-token>
 
 ---
 
-## 📦 Endpoints
+##  Endpoints
 
-### 📥 POST `/register`
+###  POST `/register`
 
 Registrera en ny användare.
 
@@ -82,13 +82,13 @@ Registrera en ny användare.
 
 ```json
 {
-  "first_name": "Anna",
-  "last_name": "Andersson",
-  "email": "anna@example.com",
-  "street": "Gatan 1",
+  "first_name": "Mårten",
+  "last_name": "Mårtensson",
+  "email": "marten@example.com",
+  "street": "Mårtengatan 1",
   "zip_code": "12345",
   "city": "Stockholm",
-  "password": "hemligt123"
+  "password": "Mårten"
 }
 ```
 
@@ -102,7 +102,7 @@ Registrera en ny användare.
 
 ---
 
-### 🔑 POST `/login`
+###  POST `/login`
 
 Logga in en användare och få en JWT-token.
 
@@ -110,8 +110,8 @@ Logga in en användare och få en JWT-token.
 
 ```json
 {
-  "email": "anna@example.com",
-  "password": "hemligt123"
+  "email": "marten@example.com",
+  "password": "Mårten"
 }
 ```
 
