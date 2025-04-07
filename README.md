@@ -135,8 +135,6 @@ Logga in en användare och få en JWT-token.
 
 #### **3. Varukorg**
 
-**Lägg till en vara i varukorgen**
-
 **Endpoint:**  
 `POST /cart/add`  
 Lägger till en vara i varukorgen.
