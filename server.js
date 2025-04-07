@@ -18,7 +18,7 @@ const app = express(); // Skapa app först!
 const PORT = 4321;
 
 // Middleware
-app.use(middleWare());
+middleWare(app); // Använd middleware för att parsa JSON-data
 app.use(express.json());
 app.use(session({
     secret: 'sample-secret',

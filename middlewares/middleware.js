@@ -1,6 +1,6 @@
 import express from 'express';
 
-export const middleWare = () => {
+export const middleWare = (app) => {
     app.use(express.json()); //bara express.json() middleware
 }
 
@@ -17,3 +17,5 @@ export const authMiddleware = (req, res, next) => {
         res.status(400).json({ error: 'Invalid token' });
     }
 };
+
+export default { middleWare };
