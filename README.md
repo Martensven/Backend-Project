@@ -133,14 +133,142 @@ Logga in en användare och få en JWT-token.
 }
 ```
 
-
-
 #### **3. Varukorg**
 
-- **Hämta varukorg för en användare**: `GET /varukorg/:userId`
-- **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
-- **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
+**Lägg till en vara i varukorgen**
 
+**Endpoint:**  
+`POST /cart/add`  
+Lägger till en vara i varukorgen.
+
+**Request:**
+
+```
+POST /cart/add
+Content-Type: application/json
+
+{
+  "item_id": "<itemIdNr>",
+  "quantity": <amountNr>
+}
+```
+
+#### Responses
+
+| Status | Beskrivning                           |
+|--------|---------------------------------------|
+| 200    | Item successfully added to the cart   |
+| 400    | Missing item ID or quantity          |
+| 401    | Item not found                        |
+| 500    | Server error                          |
+
+#### Response Example
+
+````json
+{
+  "message": "Item added to cart",
+  "cart": {
+    "items": [
+      {
+        "_id": "607f1f77bcf86cd799439011",
+        "title": "Bryggkaffe",
+        "price": 39,
+        "desc": "Bryggd på månadens bönor.",
+        "quantity": 2,
+        "totalPrice": 78
+      }
+    ],
+    "grandTotal": 78
+  }
+}
+````
+
+**Hämta varukorgen**
+
+**Endpoint:**  
+`GET /cart/`  
+Hämtar den nuvarande varukorgen för en användare eller gäst.
+
+**Request:**
+
+```
+GET /cart/
+```
+
+#### Responses
+
+| Status | Beskrivning                         |
+|--------|-------------------------------------|
+| 200    | Successfully retrieved cart data    |
+| 404    | Cart not found                      |
+| 500    | Server error                        |
+
+#### Response Example
+
+````json
+{
+  "cart": {
+    "items": [
+      {
+        "_id": "607f1f77bcf86cd799439011",
+        "title": "Bryggkaffe",
+        "price": 39,
+        "desc": "Bryggd på månadens bönor.",
+        "quantity": 2,
+        "totalPrice": 78
+      }
+    ],
+    "grandTotal": 78
+  }
+}
+````
+
+**Ta bort en vara från varukorgen**
+
+**Endpoint:**  
+`POST /cart/remove`  
+Tar bort eller minskar kvantiteten av en vara i varukorgen.
+
+**Request:**
+
+```
+POST /cart/remove
+Content-Type: application/json
+
+{
+  "item_id": "<itemIdNr>"
+}
+```
+
+#### Responses
+
+| Status | Beskrivning                                |
+|--------|--------------------------------------------|
+| 200    | Item quantity updated or removed from cart |
+| 400    | Missing item ID                            |
+| 404    | Cart or item not found                     |
+| 500    | Server error                               |
+
+#### Response Example
+
+````json
+{
+  "message": "Item quantity updated",
+  "cart": {
+    "items": [
+      {
+        "_id": "607f1f77bcf86cd799439011",
+        "title": "Bryggkaffe",
+        "price": 39,
+        "desc": "Bryggd på månadens bönor.",
+        "quantity": 1,
+        "totalPrice": 39
+      }
+    ],
+    "grandTotal": 39
+  }
+}
+````
 #### **4. Order**
 
 
