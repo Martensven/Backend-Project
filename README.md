@@ -24,7 +24,9 @@ För att kunna köra detta projekt behöver du följande verktyg och beroenden:
 2. **Installera beroenden**
    ```sh
    init -y
-   npm install express mongoose bcryptjs jsonwebtoken dotenv cookie-parser
+
+   npm install express mongoose bcryptjs jsonwebtoken dotenv express-session
+
    ```
 
 4. **Starta servern**
@@ -130,215 +132,101 @@ JSON Body:
 - 500 Internal Server Error - Om något oväntat går fel
 
 #### **2. Users (Användare)**
+##  Autentisering
 
-##### **2.1 Hämta alla användare**: 
+Autentisering sker via **JWT tokens**. Vid inloggning får klienten en token som skickas med som header i skyddade endpoints (om sådana finns):
 
-**Request** `GET /users`
-
-**Response**
 ```
-[
-   {
-      "Exempel": Exmepel
-   }
-]
+Authorization: Bearer <JWT-token>
 ```
-**Felhantering**
-- 500 Internal Server Error - Om något oväntat går fel
 
-##### **2.2 Hämta en specifik användare**: 
+---
 
-**Request** `GET /users/:id`
+##  Endpoints
 
-**Response**
-```
-[
-   {
-      "Exempel": Exmepel
-   }
-]
-```
-**Felhantering**
-- 404 Not Found - Om användaren inte finns eller hittas
-- 500 Internal Server Error - Om något oväntat går fel
+###  POST `/register`
 
-##### **2.3 Skapa en ny användare**: 
+Registrera en ny användare.
 
-**Request** `POST /users`
+#### Request Body
 
-JSON Body:  
-```
+```json
 {
-   "Exempel": Exempel
+  "first_name": "Mårten",
+  "last_name": "Mårtensson",
+  "email": "marten@example.com",
+  "street": "Mårtengatan 1",
+  "zip_code": "12345",
+  "city": "Stockholm",
+  "password": "Mårten"
 }
 ```
 
-**Response**
-```
+#### Responses
+
+| Status | Beskrivning                             |
+|--------|-----------------------------------------|
+| 201    | ✅ Användare skapad                    |
+| 400    | ❌ Saknade fält / E-post används redan |
+| 500    | ❌ Serverfel vid skapande              |
+
+---
+
+###  POST `/login`
+
+Logga in en användare och få en JWT-token.
+
+#### Request Body
+
+```json
 {
-   "Exempel": Exmepel
+  "email": "marten@example.com",
+  "password": "Mårten"
 }
 ```
-**Felhantering**
-- 400 Bad Request - Om något inom JSON body saknas
-- 500 Internal Server Error - Om något oväntat går fel
 
-##### **2.4 Uppdatera en användare**: 
+#### Responses
 
-**Request** `PUT /users/:id`
+| Status | Beskrivning                          |
+|--------|-------------------------------------|
+| 200    | ✅ Inloggning lyckades + token       |
+| 400    | ❌ Saknad e-post eller lösenord      |
+| 401    | ❌ Felaktiga inloggningsuppgifter    |
+| 500    | ❌ Serverfel                         |
 
-JSON Body:
-```
+#### Response Example
+
+```json
 {
-   "Exempel": Exempel
-   "Exempel1": Exempel1
-}
-``` 
-
-**Response**
-```
-{
-   "Exempel": Exmepel
-   "Exempel1": Exempel 1
+  "message": "Login successful",
+  "token": "<JWT-token>"
 }
 ```
-**Felhantering**
-- 404 Not Found - Om användaren inte finns eller hittas
-- 500 Internal Server Error - Om något oväntat går fel
 
-##### **2.5 Ta bort en användare**: 
 
-**Request** `DELETE /users/:id`
-
-**Response**
-```
-[
-   {
-      "message": "User deleted successfully"
-      "Exempel": Exmepel
-   }
-]
-```
-**Felhantering**
-- 404 Not Found - Om användaren inte finns eller hittas
-- 500 Internal Server Error - Om något oväntat går fel
 
 #### **3. Varukorg**
 
-##### **3.1 Hämta varukorg för en användare**: 
+- **Hämta varukorg för en användare**: `GET /varukorg/:userId`
+- **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
+- **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
 
-**Request** `GET /varukorg/:userId`
-
-**Response**
-```
-[
-   {
-      "Exempel": Exmepel
-   }
-]
-```
-**Felhantering**
-- 500 Internal Server Error - Om något oväntat går fel
-
-##### **3.2 Lägg till produkt i varukorg**: 
-
-**Request** `POST /varukorg/:userId`
-
-JSON Body:
-```
-{
-   "Exempel": Exempel
-}
-```
-
-**Response**
-```
-{
-   "Exempel": Exmepel
-}
-```
-**Felhantering**
-- 400 Bad Request - Om något inom JSON body saknas
-- 500 Internal Server Error - Om något oväntat går fel
-
-##### **3.3 Uppdatera produkt i varukorg**: 
-
-**Request** `PUT /varukorg/:userId/:itemId`
-
-JSON Body:
-```
-{
-   "Exempel": Exempel
-   "Exempel1": Exempel1
-}
-```
-
-**Response**
-```
-{
-   "Exempel": Exmepel
-   "Exempel1": Exmepel1
-}
-```
-**Felhantering**
-- 404 Not Found - Om produkten inte finns eller hittas
-- 500 Internal Server Error - Om något oväntat går fel
-
-##### **3.4 Ta bort produkt från varukorg**: 
-
-**Request** `DELETE /varukorg/:userId/:itemId`
-
-**Response**
-```
-[
-   {
-      "message": "User deleted successfully"
-      "Exempel": Exmepel
-   }
-]
-```
-**Felhantering**
-- 404 Not Found - Om produkten inte finns eller hittas
-- 500 Internal Server Error - Om något oväntat går fel
+#### **4. Order**
 
 
-#### **4. Orders**
+#### **5. About**
+- **Skapa ny about**: `POST /`
+- **Hämta about**: `GET /`
+- **Hämta specifik about entry**: `GET /:id`
+- **Uppdatera specifik about entry**: `PUT /:id`
+- **Radera specifik about entry**: `DELETE /:id`
 
-##### **4.1 Hämtar items from cart.js genom en specifik user id:** 
-
-**Request** `POST /orders/:userId`
-
-**Response**
-```
-[
-   {
-      "Exempel": Exmepel
-   }
-]
-```
-**Felhantering**
-- 404 Not Found - Om cart inte finns eller hittas
-- 500 Internal Server Error - Om något oväntat går fel
-
-##### **4.2 Visar upp den specifika datan från user id :** 
-
-**Request** `GET /orders/:userId`
-
-**Response**
-```
-[
-   {
-      "Exempel": Exmepel
-   }
-]
-```
-**Felhantering**
-- 400 Bad Request - Om något med userId saknas
-- 404 Not Found - Om användaren inte finns eller hittas
-- 500 Internal Server Error - Om något oväntat går fel
+- **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
 
 ## Testning
 Anrop kan göras via Postman,Insomnia eller annan valfri tjänst genom att skicka HTTP-requests till servern.
 För att testa API:et kan du använda:
 - **Postman**: Skapa en ny `Collection` och lägg till anrop till ovanstående endpoints.
 - **Insomnia**: Skapa en ny `Workspace` och definiera endpoints där.
+
+

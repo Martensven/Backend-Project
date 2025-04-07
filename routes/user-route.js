@@ -1,8 +1,10 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { User } from '../models/users.js';
+
 
 dotenv.config();
 const router = express.Router();
@@ -70,30 +72,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Middleware för att verifiera JWT-token
-export const authMiddleware = (req, res, next) => {
-    const token = req.header('Authorization');
-    if (!token) return res.status(401).json({ error: 'Access denied. No token provided.' });
 
-    try {
-        const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        res.status(400).json({ error: 'Invalid token' });
-    }
-};
 
-// Exempel på en skyddad route
-router.get('/profile', authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.userId).select('-password');
-        if (!user) return res.status(404).json({ error: 'User not found' });
 
-        res.json(user);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch profile', details: error.message });
-    }
-});
 
-export default router;
