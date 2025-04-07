@@ -4,6 +4,60 @@ import { Item } from '../models/items.js';
 
 const router = express.Router();
 
+// Fixed kampanjer som finns för affären
+const calculateCampaigns = (items) => {
+    const now = new Date();
+    const juneEnd = new Date(now.getFullYear(), 5, 30); // till slutet av juni
+    
+    let totalDiscount = 0;
+    const appliedCampaigns = [];
+    const originalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // 1. 10% rabatt under perioden (idag till 30 juni)
+    if (now <= juneEnd) {
+        const discount = originalPrice * 0.1;
+        totalDiscount += discount;
+        appliedCampaigns.push({
+            name: "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
+            discount: discount,
+            type: "percentage"
+        });
+    }
+    
+    // 2. 50 kr rabatt om mer än 5 varor
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+    if (totalQuantity > 5) {
+        totalDiscount += 50;
+        appliedCampaigns.push({
+            name: "Rabatt på storköp (50 kr för 5+ varor)",
+            discount: 50,
+            type: "fixed"
+        });
+    }
+    
+    // 3. 10 kr rabatt på bryggkaffe
+    const coffeeItems = items.filter(item => 
+        item.title.toLowerCase().includes('bryggkaffe')
+    );
+    
+    if (coffeeItems.length > 0) {
+        const discount = coffeeItems.reduce((sum, item) => sum + (10 * item.quantity), 0);
+        totalDiscount += discount;
+        appliedCampaigns.push({
+            name: "10 kr rabatt på bryggkaffe",
+            discount: discount,
+            type: "item_discount"
+        });
+    }
+    
+    return { 
+        totalDiscount: Math.min(totalDiscount, originalPrice), // Förhindra negativa summor
+        appliedCampaigns,
+        originalPrice,
+        newPrice: Math.max(0, originalPrice - totalDiscount)
+    };
+};
+
 // Lägg till vara i varukorgen
 router.post('/add', async (req, res) => {
     try {
@@ -19,20 +73,18 @@ router.post('/add', async (req, res) => {
 
         let cart;
         if (req.user) {
-            // Om användaren är inloggad - lagra varukorgen i databasen
+
             cart = await Cart.findOne({ user_id: req.user.userId });
             if (!cart) {
                 cart = new Cart({ user_id: req.user.userId, items: [] });
             }
         } else {
-            // Om användaren är gäst - lagra varukorgen i sessionen
             if (!req.session.cart) {
                 req.session.cart = { items: [] };
             }
             cart = req.session.cart;
         }
 
-        // Kolla om varan redan finns i varukorgen
         const existingItem = cart.items.find(i => i.item_id.toString() === item_id);
         if (existingItem) {
             existingItem.quantity += quantity;
@@ -41,26 +93,28 @@ router.post('/add', async (req, res) => {
         }
 
         if (req.user) {
-            await cart.save(); // Spara varukorgen i databasen om användaren är inloggad
+            await cart.save();
         } else {
-            req.session.cart = cart; // Spara varukorgen i sessionen om användaren är gäst
-        }
+            req.session.cart = cart;
 
+        }
         res.status(200).json({ message: 'Item added to cart', cart });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
+
+
+
 router.get('/', async (req, res) => {
     try {
         let cart;
         if (req.session.userId) {
-            // Hämta från databasen om inloggad
             cart = await Cart.findOne({ user_id: req.session.userId })
-                .populate('items.item_id', 'title price desc'); // Se till att vi hämtar 'title', 'price', och 'desc'
+                .populate('items.item_id', 'title price desc');
         } else {
-            // Hämta från sessionen om gäst
+
             cart = req.session.cart || { items: [] };
         }
 
@@ -77,6 +131,7 @@ router.get('/', async (req, res) => {
             } else {
                 // Gästanvändare (item_id är en sträng) – hämta från databasen
                 itemObject = await Item.findById(item.item_id).lean() || { _id: item.item_id, title: "Unknown", price: 0, desc: "" };
+
             }
 
             return {
@@ -85,14 +140,20 @@ router.get('/', async (req, res) => {
                 totalPrice: itemObject.price * item.quantity
             };
         }));
+        // Beräkna kampanjer
+        const { totalDiscount, appliedCampaigns, originalPrice, newPrice } = 
+            calculateCampaigns(enhancedItems);
 
-        // Beräkna grandTotal
-        const grandTotal = enhancedItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
         res.json({
             cart: {
                 items: enhancedItems,
-                grandTotal
+
+                originalPrice,
+                newPrice,
+                totalDiscount,
+                appliedCampaigns
+
             }
         });
     } catch (error) {
@@ -100,7 +161,6 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Rensa varukorgen (t.ex. vid utloggning)
 router.post('/remove', async (req, res) => {
     try {
         const { item_id } = req.body;
@@ -110,6 +170,7 @@ router.post('/remove', async (req, res) => {
 
         let cart;
         if (req.session.userId) {
+
             // Inloggad användare - hämta varukorgen från databasen
             cart = await Cart.findOne({ user_id: req.session.userId });
             if (!cart) return res.status(404).json({ message: 'Cart not found' });
