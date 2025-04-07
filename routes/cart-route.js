@@ -73,6 +73,7 @@ router.post('/add', async (req, res) => {
 
         let cart;
         if (req.user) {
+
             cart = await Cart.findOne({ user_id: req.user.userId });
             if (!cart) {
                 cart = new Cart({ user_id: req.user.userId, items: [] });
@@ -95,15 +96,17 @@ router.post('/add', async (req, res) => {
             await cart.save();
         } else {
             req.session.cart = cart;
-        }
 
+        }
         res.status(200).json({ message: 'Item added to cart', cart });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
-// Hämta varukorg med kampanjberäkning
+
+
+
 router.get('/', async (req, res) => {
     try {
         let cart;
@@ -111,6 +114,7 @@ router.get('/', async (req, res) => {
             cart = await Cart.findOne({ user_id: req.session.userId })
                 .populate('items.item_id', 'title price desc');
         } else {
+
             cart = req.session.cart || { items: [] };
         }
 
@@ -122,14 +126,12 @@ router.get('/', async (req, res) => {
             let itemObject;
 
             if (typeof item.item_id === 'object' && item.item_id !== null) {
+                // Inloggad användare (Mongoose-dokument)
                 itemObject = item.item_id.toObject ? item.item_id.toObject() : item.item_id;
             } else {
-                itemObject = await Item.findById(item.item_id).lean() || { 
-                    _id: item.item_id, 
-                    title: "Unknown", 
-                    price: 0, 
-                    desc: "" 
-                };
+                // Gästanvändare (item_id är en sträng) – hämta från databasen
+                itemObject = await Item.findById(item.item_id).lean() || { _id: item.item_id, title: "Unknown", price: 0, desc: "" };
+
             }
 
             return {
@@ -138,18 +140,20 @@ router.get('/', async (req, res) => {
                 totalPrice: itemObject.price * item.quantity
             };
         }));
-
         // Beräkna kampanjer
         const { totalDiscount, appliedCampaigns, originalPrice, newPrice } = 
             calculateCampaigns(enhancedItems);
 
+
         res.json({
             cart: {
                 items: enhancedItems,
+
                 originalPrice,
                 newPrice,
                 totalDiscount,
                 appliedCampaigns
+
             }
         });
     } catch (error) {
@@ -157,7 +161,6 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Uppdatera/ta bort vara från varukorgen
 router.post('/remove', async (req, res) => {
     try {
         const { item_id } = req.body;
@@ -167,9 +170,12 @@ router.post('/remove', async (req, res) => {
 
         let cart;
         if (req.session.userId) {
+
+            // Inloggad användare - hämta varukorgen från databasen
             cart = await Cart.findOne({ user_id: req.session.userId });
             if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
+            // Hitta varan i varukorgen
             const itemIndex = cart.items.findIndex(i => i.item_id.toString() === item_id);
             if (itemIndex !== -1) {
                 if (cart.items[itemIndex].quantity > 1) {
@@ -180,6 +186,7 @@ router.post('/remove', async (req, res) => {
                 await cart.save();
             }
         } else {
+            // Gästanvändare - hämta varukorgen från sessionen
             if (!req.session.cart) req.session.cart = { items: [] };
             cart = req.session.cart;
 
