@@ -62,10 +62,76 @@ Alla requests hanteras via `http://localhost:4321`
 
 
 #### **2. Users (Användare)**
-- **Hämta en specifik användare**: `GET /users/:id`
-- **Skapa en ny användare**: `POST /users/register`
-- **Uppdatera en användare**: `PUT /users/:id`
-- **Ta bort en användare**: `DELETE /users/:id`
+##  Autentisering
+
+Autentisering sker via **JWT tokens**. Vid inloggning får klienten en token som skickas med som header i skyddade endpoints (om sådana finns):
+
+```
+Authorization: Bearer <JWT-token>
+```
+
+---
+
+##  Endpoints
+
+###  POST `/register`
+
+Registrera en ny användare.
+
+#### Request Body
+
+```json
+{
+  "first_name": "Mårten",
+  "last_name": "Mårtensson",
+  "email": "marten@example.com",
+  "street": "Mårtengatan 1",
+  "zip_code": "12345",
+  "city": "Stockholm",
+  "password": "Mårten"
+}
+```
+
+#### Responses
+
+| Status | Beskrivning                             |
+|--------|-----------------------------------------|
+| 201    | ✅ Användare skapad                    |
+| 400    | ❌ Saknade fält / E-post används redan |
+| 500    | ❌ Serverfel vid skapande              |
+
+---
+
+###  POST `/login`
+
+Logga in en användare och få en JWT-token.
+
+#### Request Body
+
+```json
+{
+  "email": "marten@example.com",
+  "password": "Mårten"
+}
+```
+
+#### Responses
+
+| Status | Beskrivning                          |
+|--------|-------------------------------------|
+| 200    | ✅ Inloggning lyckades + token       |
+| 400    | ❌ Saknad e-post eller lösenord      |
+| 401    | ❌ Felaktiga inloggningsuppgifter    |
+| 500    | ❌ Serverfel                         |
+
+#### Response Example
+
+```json
+{
+  "message": "Login successful",
+  "token": "<JWT-token>"
+}
+```
 
 
 
