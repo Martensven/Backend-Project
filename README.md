@@ -25,7 +25,7 @@ För att kunna köra detta projekt behöver du följande verktyg och beroenden:
    ```sh
    init -y
 
-   npm install express mongoose bcryptjs jsonwebtoken dotenv cookie-parser express-session
+   npm install express mongoose bcryptjs jsonwebtoken dotenv express-session
 
    ```
 
@@ -75,9 +75,10 @@ Alla requests hanteras via `http://localhost:4321`
 - **Lägg till produkt i varukorg**: `POST /varukorg/:userId`
 - **Ta bort produkt från varukorg**: `DELETE /:userId/:itemId`
 
+#### **4. Order**
 
 
-#### **4. About**
+#### **5. About**
 - **Skapa ny about**: `POST /`
 - **Hämta about**: `GET /`
 - **Hämta specifik about entry**: `GET /:id`
