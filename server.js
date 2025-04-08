@@ -10,8 +10,6 @@ import orderRoutes from './routes/order-route.js';
 import cartRoutes from './routes/cart-route.js';
 import aboutRoutes from './routes/about-route.js';
 
-
-
 dotenv.config();
 
 const app = express(); // Skapa app först!

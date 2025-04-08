@@ -2,12 +2,13 @@ import express, { Router } from 'express';
 import mongoose from 'mongoose';
 import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
+import { calculateCampaigns } from './cart-route.js';
+import { authMiddleware } from '../middlewares/middleware.js';
 
 const router = express.Router();
-const app = express();
 
 //Hämtar items from cart.js genom en specifik user id
-router.post('/:userId', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
     try {
         const userId = req.params.userId;
 
@@ -16,11 +17,24 @@ router.post('/:userId', async (req, res) => {
             return res.status(400).json({ message: 'Cart is empty' });
         }
 
-        const total_price = cart.items.reduce((sum, item) => sum + (item.item_id.price * item.quantity), 0);
+        const preparedItems = cart.items.map(item => ({
+            title: item.item_id.title,
+            price: item.item_id.price,
+            quantity: item.quantity
+        }));
+
+        const { newPrice, totalDiscount, appliedCampaigns, originalPrice } = calculateCampaigns(preparedItems);
+
+        const deliveryHour = Math.floor(Math.random() * 20) + 1;
+        const deliveryTime = `${deliveryHour} hours`;
 
         const newOrder = new Order({
             user_id: userId,
-            total_price,  
+            total_price: newPrice,
+            original_price: originalPrice,
+            discount_applied: totalDiscount,
+            applied_campaigns: appliedCampaigns,
+            delivery_time: deliveryTime,  
             items: cart.items.map(item => ({
                 item_id: item.item_id._id,
                 quantity: item.quantity,
@@ -37,7 +51,7 @@ router.post('/:userId', async (req, res) => {
 });
 
 //visar upp den specifika datan från userId 
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', authMiddleware, async (req, res) => {
     try {
         const userId = req.params.userId;
 
@@ -77,7 +91,7 @@ router.get('/guest/:orderId', async (req, res) => {
 });
 
 //PUT för Complete och Cancelled 
-router.put('/:orderId/status', async (req, res) => {
+router.put('/:orderId/status', authMiddleware, async (req, res) => {
     try {
         const { orderId } = req.params;
         const { status } = req.body;
