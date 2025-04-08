@@ -283,7 +283,7 @@ Content-Type: application/json
 **POST: Skapa ny Order**
 
 **Header:**
-- Authorization: Bearer [din jws token]
+- Authorization: Bearer [din jwt token]
 
 **Request:**
 ```
@@ -342,7 +342,7 @@ Post /orders
 **GET: Hämta Order List från en specifik userId**
 
 **Header**
-- Authorization: Bearer [din jws token]
+- Authorization: Bearer [din jwt token]
 
 **Request:**
 ```
@@ -465,7 +465,7 @@ GET /orders/guest/:orderId
 **PUT: Byta status för Order List**
 
 **Header**
-- Authorization: Bearer [din jws token]**
+- Authorization: Bearer [din jwt token]**
 
 **Request:**
 ```
