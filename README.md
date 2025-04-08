@@ -376,5 +376,3 @@ Anrop kan göras via Postman,Insomnia eller annan valfri tjänst genom att skick
 För att testa API:et kan du använda:
 - **Postman**: Skapa en ny `Collection` och lägg till anrop till ovanstående endpoints.
 - **Insomnia**: Skapa en ny `Workspace` och definiera endpoints där.
-
-
