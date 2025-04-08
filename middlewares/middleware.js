@@ -1,9 +1,8 @@
 import express from 'express';
 
-export const middleWare = () => {
-    return express.json(); // Returnerar bara express.json() middleware
-}
-
+export const middleWare = (app) => {
+    app.use(express.json()); //bara express.json() middleware
+};
 // Middleware för att verifiera JWT-token
 export const authMiddleware = (req, res, next) => {
     const token = req.header('Authorization');
@@ -17,3 +16,5 @@ export const authMiddleware = (req, res, next) => {
         res.status(400).json({ error: 'Invalid token' });
     }
 };
+
+export default { middleWare };

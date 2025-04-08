@@ -53,7 +53,11 @@ router.put('/:id', async (req, res) => {
     if (req.body.content) aboutEntry.content = req.body.content;
 
     const updatedAboutEntry = await aboutEntry.save();
-    res.json(updatedAboutEntry);
+
+    res.status(200).json({
+      message: 'Uppdatering lyckades, nya versionen är:',
+      updated: updatedAboutEntry
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
