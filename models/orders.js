@@ -15,6 +15,8 @@ const orderSchema = new mongoose.Schema({
     created_at: { type: Date, default: Date.now },
     items: [{
         item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
+        title: { type: String, requried: true },
+        description: { type: String, required: false },
         quantity: { type: Number, required: true },
     }]
 });

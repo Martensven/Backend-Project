@@ -1,4 +1,4 @@
-import express, { Router } from 'express';
+import express from 'express';
 import mongoose from 'mongoose';
 import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
@@ -8,7 +8,7 @@ import { authMiddleware } from '../middlewares/middleware.js';
 const router = express.Router();
 
 //Hämtar items from cart.js genom en specifik user id
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/',authMiddleware, async (req, res) => {
     try {
         const userId = req.params.userId;
 
@@ -37,6 +37,8 @@ router.post('/', authMiddleware, async (req, res) => {
             delivery_time: deliveryTime,  
             items: cart.items.map(item => ({
                 item_id: item.item_id._id,
+                title: item.item_id.title, 
+                description: item.item_id.description, 
                 quantity: item.quantity,
                 price: item.item_id.price   
             }))

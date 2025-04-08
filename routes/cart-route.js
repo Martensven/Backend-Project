@@ -96,7 +96,6 @@ router.post('/add', async (req, res) => {
             await cart.save();
         } else {
             req.session.cart = cart;
-
         }
         res.status(200).json({ message: 'Item added to cart', cart });
     } catch (error) {
