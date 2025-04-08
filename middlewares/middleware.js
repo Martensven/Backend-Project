@@ -2,8 +2,7 @@ import express from 'express';
 
 export const middleWare = (app) => {
     app.use(express.json()); //bara express.json() middleware
-}
-
+};
 // Middleware för att verifiera JWT-token
 export const authMiddleware = (req, res, next) => {
     const token = req.header('Authorization');

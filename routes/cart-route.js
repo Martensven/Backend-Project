@@ -5,7 +5,7 @@ import { Item } from '../models/items.js';
 const router = express.Router();
 
 // Fixed kampanjer som finns för affären
-const calculateCampaigns = (items) => {
+export const calculateCampaigns = (items) => {
     const now = new Date();
     const juneEnd = new Date(now.getFullYear(), 5, 30); // till slutet av juni
     
@@ -103,9 +103,6 @@ router.post('/add', async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
-
-
-
 
 router.get('/', async (req, res) => {
     try {

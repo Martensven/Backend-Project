@@ -9,8 +9,7 @@ import itemRoutes from './routes/item-route.js';
 import orderRoutes from './routes/order-route.js';
 import cartRoutes from './routes/cart-route.js';
 import aboutRoutes from './routes/about-route.js';
-
-
+import cors from 'cors';
 
 dotenv.config();
 
@@ -19,6 +18,8 @@ const PORT = 4321;
 
 // Middleware
 middleWare(app); // Använd middleware för att parsa JSON-data
+// app.use(middleWare());
+app.use(cors());
 app.use(express.json());
 app.use(session({
     secret: 'sample-secret',
