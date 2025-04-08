@@ -280,6 +280,250 @@ Content-Type: application/json
 ````
 #### **4. Order**
 
+**POST: Skapa ny Order**
+
+**Header:**
+- Authorization: Bearer [din jws token]
+
+**Request:**
+```
+Post /orders
+```
+
+**Response Example:**
+```
+{
+	"message": "Order created successfully",
+	"order": {
+		"user_id": "67eeeba2844a3b8734e7b155",
+		"total_price": 479.2,
+		"original_price": 588,
+		"discount_applied": 108.80000000000001,
+		"applied_campaigns": [
+			{
+				"name": "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
+				"discount": 58.800000000000004,
+				"type": "percentage",
+				"_id": "67f5653947c676a8250b3b91"
+			},
+			{
+				"name": "Rabatt på storköp (50 kr för 5+ varor)",
+				"discount": 50,
+				"type": "fixed",
+				"_id": "67f5653947c676a8250b3b92"
+			}
+		],
+		"delivery_time": "8 hours",
+		"status": "Pending",
+		"items": [
+			{
+				"item_id": "67e9c583c59ec5d540d89ad8",
+				"title": "Latte Macchiato",
+				"quantity": 12,
+				"_id": "67f5653947c676a8250b3b93"
+			}
+		],
+		"_id": "67f5653947c676a8250b3b90",
+		"created_at": "2025-04-08T18:04:41.922Z",
+		"__v": 0
+	}
+}
+``` 
+
+****
+
+**Status Responses:**
+| Status | Beskrivning                                |
+|--------|--------------------------------------------|
+| 201    | Order created successfully                 |
+| 400    | Cart is empty                              |
+| 500    | Internal Server error                      |
+
+**GET: Hämta Order List från en specifik userId**
+
+**Header**
+- Authorization: Bearer [din jws token]
+
+**Request:**
+```
+GET /orders/user
+```
+
+**Response Example:**
+```
+[
+	{
+		"_id": "67f5653947c676a8250b3b90",
+		"user_id": "67eeeba2844a3b8734e7b155",
+		"total_price": 479.2,
+		"original_price": 588,
+		"discount_applied": 108.80000000000001,
+		"applied_campaigns": [
+			{
+				"name": "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
+				"discount": 58.800000000000004,
+				"type": "percentage",
+				"_id": "67f5653947c676a8250b3b91"
+			},
+			{
+				"name": "Rabatt på storköp (50 kr för 5+ varor)",
+				"discount": 50,
+				"type": "fixed",
+				"_id": "67f5653947c676a8250b3b92"
+			}
+		],
+		"delivery_time": "8 hours",
+		"status": "Cancelled",
+		"items": [
+			{
+				"item_id": {
+					"_id": "67e9c583c59ec5d540d89ad8",
+					"id": 4,
+					"title": "Latte Macchiato",
+					"desc": "Bryggd på månadens bönor.",
+					"price": 49,
+					"createdAt": "2025-04-08T18:22:10.330Z"
+				},
+				"title": "Latte Macchiato",
+				"quantity": 12,
+				"_id": "67f5653947c676a8250b3b93"
+			}
+		],
+		"created_at": "2025-04-08T18:04:41.922Z",
+		"__v": 0
+	}
+]
+```
+
+**Status Responses:**
+| Status | Beskrivning                                |
+|--------|--------------------------------------------|
+| 200    | Order found vis userId                     |
+| 400    | Invalid user ID                            |
+| 404    | No orders found for this user              |
+| 500    | Internal Server error                      |
+
+**GET: Hämta Order List från Order ID**
+
+**Request:**
+```
+GET /orders/guest/:orderId
+```
+
+**Response Example:**
+```
+{
+	"_id": "67f5653947c676a8250b3b90",
+	"user_id": "67eeeba2844a3b8734e7b155",
+	"total_price": 479.2,
+	"original_price": 588,
+	"discount_applied": 108.80000000000001,
+	"applied_campaigns": [
+		{
+			"name": "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
+			"discount": 58.800000000000004,
+			"type": "percentage",
+			"_id": "67f5653947c676a8250b3b91"
+		},
+		{
+			"name": "Rabatt på storköp (50 kr för 5+ varor)",
+			"discount": 50,
+			"type": "fixed",
+			"_id": "67f5653947c676a8250b3b92"
+		}
+	],
+	"delivery_time": "8 hours",
+	"status": "Cancelled",
+	"items": [
+		{
+			"item_id": {
+				"_id": "67e9c583c59ec5d540d89ad8",
+				"id": 4,
+				"title": "Latte Macchiato",
+				"desc": "Bryggd på månadens bönor.",
+				"price": 49,
+				"createdAt": "2025-04-08T18:31:14.916Z"
+			},
+			"title": "Latte Macchiato",
+			"quantity": 12,
+			"_id": "67f5653947c676a8250b3b93"
+		}
+	],
+	"created_at": "2025-04-08T18:04:41.922Z",
+	"__v": 0
+}
+```
+
+**Status Responses:**
+| Status | Beskrivning                                |
+|--------|--------------------------------------------|
+| 200    | Order found vis orderId                    |
+| 400    | Invalid order ID                           |
+| 404    | Order list not found                       |
+| 500    | Internal Server error                      |
+
+**PUT: Byta status för Order List**
+
+**Header**
+- Authorization: Bearer [din jws token]**
+
+**Request:**
+```
+PUT /orders/:orderId/status
+
+BODY JSON:
+{
+    "status": "Cancelled" eller "Completed"
+}
+```
+
+**Response Example:**
+```
+{
+	"message": "Order status has updated successfully",
+	"order": {
+		"_id": "67f5653947c676a8250b3b90",
+		"user_id": "67eeeba2844a3b8734e7b155",
+		"total_price": 479.2,
+		"original_price": 588,
+		"discount_applied": 108.80000000000001,
+		"applied_campaigns": [
+			{
+				"name": "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
+				"discount": 58.800000000000004,
+				"type": "percentage",
+				"_id": "67f5653947c676a8250b3b91"
+			},
+			{
+				"name": "Rabatt på storköp (50 kr för 5+ varor)",
+				"discount": 50,
+				"type": "fixed",
+				"_id": "67f5653947c676a8250b3b92"
+			}
+		],
+		"delivery_time": "8 hours",
+		"status": "Cancelled",
+		"items": [
+			{
+				"item_id": "67e9c583c59ec5d540d89ad8",
+				"title": "Latte Macchiato",
+				"quantity": 12,
+				"_id": "67f5653947c676a8250b3b93"
+			}
+		],
+		"created_at": "2025-04-08T18:04:41.922Z",
+		"__v": 0
+	}
+}
+```
+
+**Status Responses:**
+| Status | Beskrivning                                             |
+|--------|---------------------------------------------------------|
+| 200    | Order status has updated successfully                   |
+| 400    | Invalid status, must be "Completed" or "Cancelled"      |
+| 404    | Order list not found                                    |
+| 500    | Internal Server error                                   |
 
 #### **5. About**
 - **Skapa ny about**: `POST /`
