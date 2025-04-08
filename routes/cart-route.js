@@ -2,6 +2,7 @@ import express from 'express';
 import { Cart } from '../models/cart.js';
 import { Item } from '../models/items.js';
 
+
 const router = express.Router();
 
 // Fixed kampanjer som finns för affären
@@ -98,7 +99,11 @@ router.post('/add', async (req, res) => {
             req.session.cart = cart;
 
         }
-        res.status(200).json({ message: 'Item added to cart', cart });
+        res.status(200).json({ message: 'Item added to cart', addedItem: {
+            _id: item._id,
+            title: item.title,
+            quantity: existingItem ? existingItem.quantity : quantity
+        } });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -160,47 +165,104 @@ router.get('/', async (req, res) => {
 
 router.post('/remove', async (req, res) => {
     try {
-        const { item_id } = req.body;
+        const { item_id, quantity = 1 } = req.body; // om man inte anger quantity, sätts den till 1
+        
         if (!item_id) {
             return res.status(400).json({ message: 'Item ID is required' });
         }
 
-        let cart;
-        if (req.session.userId) {
+        if (quantity <= 0) {
+            return res.status(400).json({ message: 'Quantity must be at least 1' });
+        }
 
-            // Inloggad användare - hämta varukorgen från databasen
-            cart = await Cart.findOne({ user_id: req.session.userId });
+        let cart;
+        let itemDetails = null;
+        let removedQuantity = 0;
+
+        if (req.session.userId) {
+            // Kollar loggad user
+            cart = await Cart.findOne({ user_id: req.session.userId })
+                          .populate('items.item_id', 'title price');
+            
             if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
-            // Hitta varan i varukorgen
-            const itemIndex = cart.items.findIndex(i => i.item_id.toString() === item_id);
+            const itemIndex = cart.items.findIndex(i => i.item_id._id.toString() === item_id);
+            
             if (itemIndex !== -1) {
-                if (cart.items[itemIndex].quantity > 1) {
-                    cart.items[itemIndex].quantity -= 1;
-                } else {
+                itemDetails = cart.items[itemIndex].item_id;
+                const currentQuantity = cart.items[itemIndex].quantity;
+                
+                if (quantity >= currentQuantity) {
+                    // Tar bort item helt om quantity sjunker till 0 eller mindre
+                    removedQuantity = currentQuantity;
                     cart.items.splice(itemIndex, 1);
+                } else {
+                    
+                    removedQuantity = quantity;
+                    cart.items[itemIndex].quantity -= quantity;
                 }
+                
                 await cart.save();
             }
         } else {
-            // Gästanvändare - hämta varukorgen från sessionen
+            // Guest user - session cart
             if (!req.session.cart) req.session.cart = { items: [] };
             cart = req.session.cart;
 
             const itemIndex = cart.items.findIndex(i => i.item_id === item_id);
+            
             if (itemIndex !== -1) {
-                if (cart.items[itemIndex].quantity > 1) {
-                    cart.items[itemIndex].quantity -= 1;
-                } else {
+                // Get item details from database
+                const item = await Item.findById(item_id).select('title price');
+                itemDetails = item || { _id: item_id, title: "Unknown Item" };
+                
+                const currentQuantity = cart.items[itemIndex].quantity;
+                
+                if (quantity >= currentQuantity) {
+                    removedQuantity = currentQuantity;
                     cart.items.splice(itemIndex, 1);
+                } else {
+                    removedQuantity = quantity;
+                    cart.items[itemIndex].quantity -= quantity;
                 }
+                
                 req.session.cart = cart;
             }
         }
 
-        res.json({ message: 'Item quantity updated', cart });
+        if (!itemDetails) {
+            const item = await Item.findById(item_id).select('title').lean() || 
+                         { _id: item_id, title: "Unknown Item" };
+            itemDetails = item;
+        }
+
+        if (removedQuantity > 0) {
+            res.json({ 
+                success: true,
+                message: `Successfully removed ${removedQuantity} ${removedQuantity === 1 ? 'item' : 'items'}`,
+                removedItem: {
+                    _id: itemDetails._id,
+                    title: itemDetails.title,
+                    quantityRemoved: removedQuantity,
+                    remainingQuantity: cart.items.find(i => 
+                        i.item_id._id?.toString() === item_id || 
+                        i.item_id.toString() === item_id
+                    )?.quantity || 0
+                },
+                cart
+            });
+        } else {
+            res.status(404).json({ 
+                success: false,
+                message: 'Item not found in cart' 
+            });
+        }
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 });
 
