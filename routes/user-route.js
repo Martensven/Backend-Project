@@ -5,7 +5,6 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { User } from '../models/users.js';
 
-
 dotenv.config();
 const router = express.Router();
 
@@ -72,7 +71,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
+
 export default router;
-
-
 

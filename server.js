@@ -11,9 +11,6 @@ import cartRoutes from './routes/cart-route.js';
 import aboutRoutes from './routes/about-route.js';
 import cors from 'cors';
 
-
-//
-
 dotenv.config();
 
 const app = express(); // Skapa app först!

@@ -39,27 +39,97 @@ Alla requests hanteras via `http://localhost:4321`
 
 #### **1. Items (Produkter)**
 
-- **Hämta alla produkter**: `GET /items`
-- **Hämta en specifik produkt med primär nyckel**: `GET /items/:id`
-- **Hämta en specifik produkt med id**: `GET /by-number/:id`
+##### **1.1 Hämta alla produkter**: 
+
+**Request** `GET /items`
+
 **Response**
 ```
-"success": true,
-    "count": 6,
-    "data": [
-        {
-            "_id": "67e5e2ffde5e397a40ab0842",
-            "id": 1,
-            "title": "Bryggkaffe",
-            "desc": "Bryggd på månadens bönor.",
-            "price": 39,
-            "createdAt": "2025-04-01T23:10:31.949Z"
-        },
-    ]
+[
+   {
+      "Exempel": Exmepel
+   }
+]
 ```
 **Felhantering**
 - 500 Internal Server Error - Om något oväntat går fel
 
+##### **1.2 Hämta en specifik produkt**: 
+
+**Request** `GET /items/:id`
+
+**Response**
+```
+[
+   {
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 404 Not Found - Om Item inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **1.3 Lägg till en ny produkt**:
+
+**Request** `POST /items`
+
+JSON Body:
+```
+{
+   "Exempel": Exempel
+}
+```
+
+**Response**
+```
+{
+   "Exempel": Exmepel
+}
+```
+**Felhantering**
+- 400 Bad Request - Om något inom JSON body saknas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **1.4 Uppdatera en produkt**: 
+
+**Request** `PUT /items/:id`
+
+JSON Body: 
+```
+{
+   "Exempel": Exempel, 
+   "Exempel1": Exempel 1
+}
+```
+
+**Response**
+```
+{
+   "Exempel": Exmepel
+   "Exempel1": Exempel 1
+}
+```
+**Felhantering**
+- 404 Not Found - Om item inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
+
+##### **1.5 Ta bort en produkt**: 
+
+**Request** `DELETE /items/:id`
+
+**Response**
+```
+[
+   {
+      "message": "Item with ID [exempelID] has been deleted"
+      "Exempel": Exmepel
+   }
+]
+```
+**Felhantering**
+- 404 Not Found - Om item inte finns eller hittas
+- 500 Internal Server Error - Om något oväntat går fel
 
 #### **2. Users (Användare)**
 ##  Autentisering
