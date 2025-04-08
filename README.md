@@ -60,12 +60,6 @@ Alla requests hanteras via `http://localhost:4321`
 **Felhantering**
 - 500 Internal Server Error - Om något oväntat går fel
 
-#### **2. Users**
-- **Hämta en specifik användare**: `GET /users/:id`
-- **Skapa en ny användare**: `POST /users/register`
-- **Uppdatera en användare**: `PUT /users/:id`
-- **Ta bort en användare**: `DELETE /users/:id`
-
 
 #### **2. Users (Användare)**
 ##  Autentisering
