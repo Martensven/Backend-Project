@@ -17,4 +17,10 @@ export const authMiddleware = (req, res, next) => {
     }
 };
 
+
 export default { middleWare };
+
+module.exports = {
+    validateMenuItem
+};
+

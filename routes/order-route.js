@@ -1,16 +1,20 @@
-import express, { Router } from 'express';
+import express from 'express';
 import mongoose from 'mongoose';
 import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
 import { calculateCampaigns } from './cart-route.js';
 import { authMiddleware } from '../middlewares/middleware.js';
+import validateData from '../middlewares/dataValidation';
 
 const router = express.Router();
 
-//Hämtar items from cart.js genom en specifik user id
+// Validate MongoDB ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+// Skapa ny order från cart
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.user.userId; // Assuming authMiddleware adds user info
 
         const cart = await Cart.findOne({ user_id: userId }).populate('items.item_id');
         if (!cart || cart.items.length === 0) {
@@ -50,68 +54,91 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 });
 
-//visar upp den specifika datan från userId 
-router.get('/user/:userId', authMiddleware, async (req, res) => {
-    try {
-        const userId = req.params.userId;
+// Hämta användares ordrar
+router.get('/user/:userId', 
+    authMiddleware,
+    validateData(['userId'], { userId: 'string' }),
+    async (req, res) => {
+        try {
+            const userId = req.params.userId;
 
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Invalid user ID' });
+            if (!isValidObjectId(userId)) {
+                return res.status(400).json({ message: 'Invalid user ID' });
+            }
+
+            const orders = await Order.find({ user_id: userId }).populate('items.item_id');
+            if (!orders || orders.length === 0) {
+                return res.status(404).json({ message: 'No orders found for this user' });
+            }
+
+            res.status(200).json(orders);
+        } catch (error) {
+            res.status(500).json({ message: 'Server Error', error: error.message });
         }
-
-        const orders = await Order.find({ user_id: userId }).populate('items.item_id');
-        if (!orders || orders.length === 0) {
-            return res.status(404).json({ message: 'No orders found for this user' });
-        }
-
-        res.status(200).json(orders);
-    } catch (error) {
-        res.status(500).json({ message: 'Server Error', error });
-    }
 });
 
-//GET Order ID
-router.get('/guest/:orderId', async (req, res) => {
-    try {
-        const orderId = req.params.orderId;
+// Hämta gästorder med OrderId
+router.get('/guest/:orderId', 
+    validateData(['orderId'], { orderId: 'string' }),
+    async (req, res) => {
+        try {
+            const orderId = req.params.orderId;
 
-        if (!mongoose.Types.ObjectId.isValid(orderId)) {
-            return res.status(400).json({ message: 'Invalid order ID' });
+            if (!isValidObjectId(orderId)) {
+                return res.status(400).json({ message: 'Invalid order ID' });
+            }
+
+            const order = await Order.findById(orderId).populate('items.item_id');
+            if (!order) {
+                return res.status(404).json({ message: 'Order not found' });
+            }
+
+            res.status(200).json(order);
+        } catch (error) {
+            res.status(500).json({ message: 'Server Error', error: error.message });
         }
-
-        const order = await Order.findById(orderId).populate('items.item_id');
-        if (!order) {
-            return res.status(404).json({ message: 'Orders not found' });
-        }
-
-        res.status(200).json(order);
-    } catch (error) {
-        res.status (500).json({ message: 'Server Error', error });
-    }
 });
 
-//PUT för Complete och Cancelled 
-router.put('/:orderId/status', authMiddleware, async (req, res) => {
-    try {
-        const { orderId } = req.params;
-        const { status } = req.body;
+// Updattera orderstatus
+router.put('/:orderId/status', 
+    authMiddleware,
+    validateData(['orderId', 'status'], { 
+        orderId: 'string', 
+        status: 'string' 
+    }),
+    async (req, res) => {
+        try {
+            const { orderId } = req.params;
+            const { status } = req.body;
 
-        if (!status || !['Completed', 'Cancelled'].includes(status)) {
-            return res.status(400).json({ message: 'Invalid status, must be "Completed" or "Cancelled"' });
+            if (!isValidObjectId(orderId)) {
+                return res.status(400).json({ message: 'Invalid order ID' });
+            }
+
+            if (!status || !['Completed', 'Cancelled'].includes(status)) {
+                return res.status(400).json({ 
+                    message: 'Invalid status, must be "Completed" or "Cancelled"' 
+                });
+            }
+
+            const order = await Order.findById(orderId);
+            if (!order) {
+                return res.status(404).json({ message: 'Order not Found' });
+            }
+
+            order.status = status;
+            await order.save();
+
+            res.status(200).json({ 
+                message: 'Order status updated successfully', 
+                order 
+            });
+        } catch (error) {
+            res.status(500).json({ 
+                message: 'Internal Server Error', 
+                error: error.message 
+            });
         }
-
-        const order = await Order.findById(orderId);
-        if (!order) {
-            return res.status(404).json({ message: 'Order not Found' });
-        }
-
-        order.status = status;
-        await order.save();
-
-        res.status(200).json({ message: 'Order status has updated successfully', order });
-    } catch (error) {
-        res.status(500).json({ message: 'Internal Server Error', error: error.message });
-    }
 });
 
 export default router;

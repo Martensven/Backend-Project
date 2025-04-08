@@ -25,7 +25,7 @@ För att kunna köra detta projekt behöver du följande verktyg och beroenden:
    ```sh
    init -y
 
-   npm install express mongoose bcryptjs jsonwebtoken dotenv express-session
+   npm install express mongoose bcryptjs jsonwebtoken dotenv express-session cors
 
    ```
 
