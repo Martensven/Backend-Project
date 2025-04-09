@@ -1,4 +1,4 @@
-import express, { Router } from 'express';
+import express from 'express';
 import mongoose from 'mongoose';
 import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
@@ -10,7 +10,7 @@ const router = express.Router();
 //Hämtar items from cart.js genom en specifik user id
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.user.userId;
 
         const cart = await Cart.findOne({ user_id: userId }).populate('items.item_id');
         if (!cart || cart.items.length === 0) {
@@ -37,6 +37,8 @@ router.post('/', authMiddleware, async (req, res) => {
             delivery_time: deliveryTime,  
             items: cart.items.map(item => ({
                 item_id: item.item_id._id,
+                title: item.item_id.title, 
+                description: item.item_id.description, 
                 quantity: item.quantity,
                 price: item.item_id.price   
             }))
@@ -51,9 +53,9 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 //visar upp den specifika datan från userId 
-router.get('/user/:userId', authMiddleware, async (req, res) => {
+router.get('/user', authMiddleware, async (req, res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.user.userId;
 
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: 'Invalid user ID' });
@@ -113,5 +115,9 @@ router.put('/:orderId/status', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error', error: error.message });
     }
 });
+
+router.get('/test', authMiddleware, (req, res) => {
+    res.status(200).json({ message: 'You are authorized', user: req.user });
+  });
 
 export default router;

@@ -1,5 +1,4 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
@@ -71,6 +70,4 @@ router.post('/login', async (req, res) => {
     }
 });
 
-
 export default router;
-
