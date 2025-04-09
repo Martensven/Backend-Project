@@ -227,7 +227,7 @@ router.post('/remove', authMiddleware, async (req, res) => {
                     removedQuantity = quantity;
                     cart.items[itemIndex].quantity -= quantity;
                 }
-                
+
                 req.session.cart = cart;
             }
         }

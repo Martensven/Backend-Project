@@ -25,3 +25,4 @@ export const validateData = (requiredFields, typeChecks = {}) => {
     };
 };
 
+  
