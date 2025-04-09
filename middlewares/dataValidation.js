@@ -1,20 +1,23 @@
-export const validateData = (requiredFields, typeChecks = {}) => {
+export const validateData = (requiredFields, typeChecks = {}, source = 'body') => {
     return (req, res, next) => {
+
+        const data = req[source];
+
         // Kolla om body finns
-        if (!req.body) {
-            return res.status(400).json({ error: 'No data sent' });
+        if (!data) {
+            return res.status(400).json({ error: `No ${source} data sent` });
         }
 
         // Kontrollera obligatoriska fält
         for (let field of requiredFields) {
-            if (!req.body[field]) {
+            if (!data[field]) {
                 return res.status(400).json({ error: `${field} is required` });
             }
         }
 
         // Kontrollera datatyper (JSON)
         for (let [field, type] of Object.entries(typeChecks)) {
-            if (req.body[field] && typeof req.body[field] !== type) {
+            if (data[field] && typeof data[field] !== type) {
                 return res.status(400).json({
                     error: `${field} must be a ${type}`
                 });

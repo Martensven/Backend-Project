@@ -4,8 +4,12 @@ import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
 import { calculateCampaigns } from './cart-route.js';
 import { authMiddleware } from '../middlewares/middleware.js';
+import { validateData } from '../middlewares/dataValidation.js';
 
 const router = express.Router();
+
+// Validate MongoDB ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 //Hämtar items from cart.js genom en specifik user id
 router.post('/', authMiddleware, async (req, res) => {
@@ -73,7 +77,7 @@ router.get('/user', authMiddleware, async (req, res) => {
 });
 
 //GET Order ID
-router.get('/history/:orderId', async (req, res) => {
+router.get('/history/:orderId', validateData(['orderId'], { orderId: 'string' }, 'params'), async (req, res) => {
     try {
         const orderId = req.params.orderId;
 
@@ -93,7 +97,7 @@ router.get('/history/:orderId', async (req, res) => {
 });
 
 //PUT för Complete och Cancelled 
-router.put('/:orderId/status', authMiddleware, async (req, res) => {
+router.put('/status/:orderId', authMiddleware, validateData(['orderId'], { orderId: 'string' }, 'params'), validateData(['status'], { status: 'string' }, 'body') , async (req, res) => {
     try {
         const { orderId } = req.params;
         const { status } = req.body;
