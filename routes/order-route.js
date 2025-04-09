@@ -73,7 +73,7 @@ router.get('/user', authMiddleware, async (req, res) => {
 });
 
 //GET Order ID
-router.get('/guest/:orderId', async (req, res) => {
+router.get('/history/:orderId', async (req, res) => {
     try {
         const orderId = req.params.orderId;
 
