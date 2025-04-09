@@ -8,11 +8,11 @@ const router = express.Router();
 export const calculateCampaigns = (items) => {
     const now = new Date();
     const juneEnd = new Date(now.getFullYear(), 5, 30); // till slutet av juni
-    
+
     let totalDiscount = 0;
     const appliedCampaigns = [];
     const originalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
+
     // 1. 10% rabatt under perioden (idag till 30 juni)
     if (now <= juneEnd) {
         const discount = originalPrice * 0.1;
@@ -23,7 +23,7 @@ export const calculateCampaigns = (items) => {
             type: "percentage"
         });
     }
-    
+
     // 2. 50 kr rabatt om mer än 5 varor
     const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
     if (totalQuantity > 5) {
@@ -34,12 +34,12 @@ export const calculateCampaigns = (items) => {
             type: "fixed"
         });
     }
-    
+
     // 3. 10 kr rabatt på bryggkaffe
-    const coffeeItems = items.filter(item => 
+    const coffeeItems = items.filter(item =>
         item.title.toLowerCase().includes('bryggkaffe')
     );
-    
+
     if (coffeeItems.length > 0) {
         const discount = coffeeItems.reduce((sum, item) => sum + (10 * item.quantity), 0);
         totalDiscount += discount;
@@ -49,8 +49,8 @@ export const calculateCampaigns = (items) => {
             type: "item_discount"
         });
     }
-    
-    return { 
+
+    return {
         totalDiscount: Math.min(totalDiscount, originalPrice), // Förhindra negativa summor
         appliedCampaigns,
         originalPrice,
@@ -138,7 +138,7 @@ router.get('/', async (req, res) => {
             };
         }));
         // Beräkna kampanjer
-        const { totalDiscount, appliedCampaigns, originalPrice, newPrice } = 
+        const { totalDiscount, appliedCampaigns, originalPrice, newPrice } =
             calculateCampaigns(enhancedItems);
 
 
