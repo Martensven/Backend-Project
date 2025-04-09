@@ -141,7 +141,16 @@ Logga in en användare och få en JWT-token.
 Lägger till en vara i varukorgen.
 
 **Request:**
+```
+POST http://localhost:4321/cart/add
+Content-Type: application/json
+Authorization: Bearer JTW-TOKEN-HERE
 
+{
+    "item_id": "<itemIdNr>",
+    "quantity": <amountNr>
+}
+```
 ```
 POST /cart/add
 Content-Type: application/json
@@ -189,7 +198,10 @@ Content-Type: application/json
 Hämtar den nuvarande varukorgen för en användare eller gäst.
 
 **Request:**
-
+```
+GET /cart/
+Authorization: Bearer JTW-TOKEN-HERE
+```
 ```
 GET /cart/
 ```
@@ -244,7 +256,15 @@ GET /cart/
 Tar bort eller minskar kvantiteten av en vara i varukorgen.
 
 **Request:**
+```
+POST http://localhost:4321/cart/remove
+Content-Type: application/json
+Authorization: Bearer JTW-TOKEN-HERE
 
+{
+  "item_id": "<itemIdNr>"
+}
+```
 ```
 POST /cart/remove
 Content-Type: application/json
