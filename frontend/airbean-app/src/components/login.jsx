@@ -64,6 +64,8 @@ export const Login = () => {
                     onChange={handleChange}
                     required
                 />
+                <br />
+                <br />
                 <input
                     type="password"
                     name="password"
@@ -72,6 +74,7 @@ export const Login = () => {
                     onChange={handleChange}
                     required
                 />
+                <br />
                 <br />
                 <button type="submit">Login</button>
             </form>

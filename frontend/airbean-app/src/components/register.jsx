@@ -63,12 +63,20 @@ export const Register = () => {
             {error && <p style={{ color: 'red' }}>{error}</p>}
             <form onSubmit={handleSubmit}>
                 <input type="text" name="first_name" placeholder="First Name" value={formData.first_name} onChange={handleChange} required />
+                <br />
                 <input type="text" name="last_name" placeholder="Last Name" value={formData.last_name} onChange={handleChange} required />
+                <br />
                 <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+                <br />
                 <input type="text" name="street" placeholder="Street" value={formData.street} onChange={handleChange} required />
+                <br />
                 <input type="text" name="zip_code" placeholder="Zip Code" value={formData.zip_code} onChange={handleChange} required />
+                <br />
                 <input type="text" name="city" placeholder="City" value={formData.city} onChange={handleChange} required />
+                <br />
                 <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
+                <br />
+                <br />
                 <button type="submit">Register</button>
             </form>
         </main>
