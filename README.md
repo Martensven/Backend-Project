@@ -140,7 +140,7 @@ Logga in en användare och få en JWT-token.
 `POST /cart/add`  
 Lägger till en vara i varukorgen.
 
-**Request:**
+**Request user/guest:**
 ```
 POST http://localhost:4321/cart/add
 Content-Type: application/json
@@ -197,7 +197,7 @@ Content-Type: application/json
 `GET /cart/`  
 Hämtar den nuvarande varukorgen för en användare eller gäst.
 
-**Request:**
+**Request user/guest:**
 ```
 GET /cart/
 Authorization: Bearer JTW-TOKEN-HERE
@@ -255,7 +255,7 @@ GET /cart/
 `POST /cart/remove`  
 Tar bort eller minskar kvantiteten av en vara i varukorgen.
 
-**Request:**
+**Request user/guest:**
 ```
 POST http://localhost:4321/cart/remove
 Content-Type: application/json
