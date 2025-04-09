@@ -1,60 +1,67 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import { Cart } from '../models/cart.js';
 import { Item } from '../models/items.js';
-import { User } from '../models/users.js';
-import path from 'path';
-import {fileURLToPath} from 'url'
+import { authMiddleware } from '../middlewares/middleware.js';
+
 
 const router = express.Router();
 
-// Lägg till vara i varukorgen
-router.post('/add', async (req, res) => {
-
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const router = express.Router();
-
-// Hantera _dirname i ES-moduler
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const isValidMenuItem = async (itemId) => {
-    try {
-        // Anropar API ENDPOINT för att hämta items
-        const response = await fetch(`http://localhost:4321/items/${itemId}`);
-
-        // Kolla om produkten finns
-        if (!response.ok) return false;
-
-        const item = await response.json();
-        return item !== null;
-    } catch (error) {
-        console.error("Error checking item:", error);
-        return false;
+// Fixed kampanjer som finns för affären
+export const calculateCampaigns = (items) => {
+    const now = new Date();
+    const juneEnd = new Date(now.getFullYear(), 5, 30); // till slutet av juni
+    
+    let totalDiscount = 0;
+    const appliedCampaigns = [];
+    const originalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // 1. 10% rabatt under perioden (idag till 30 juni)
+    if (now <= juneEnd) {
+        const discount = originalPrice * 0.1;
+        totalDiscount += discount;
+        appliedCampaigns.push({
+            name: "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
+            discount: discount,
+            type: "percentage"
+        });
     }
+    
+    // 2. 50 kr rabatt om mer än 5 varor
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+    if (totalQuantity > 5) {
+        totalDiscount += 50;
+        appliedCampaigns.push({
+            name: "Rabatt på storköp (50 kr för 5+ varor)",
+            discount: 50,
+            type: "fixed"
+        });
+    }
+    
+    // 3. 10 kr rabatt på bryggkaffe
+    const coffeeItems = items.filter(item => 
+        item.title.toLowerCase().includes('bryggkaffe')
+    );
+    
+    if (coffeeItems.length > 0) {
+        const discount = coffeeItems.reduce((sum, item) => sum + (10 * item.quantity), 0);
+        totalDiscount += discount;
+        appliedCampaigns.push({
+            name: "10 kr rabatt på bryggkaffe",
+            discount: discount,
+            type: "item_discount"
+        });
+    }
+    
+    return { 
+        totalDiscount: Math.min(totalDiscount, originalPrice), // Förhindra negativa summor
+        appliedCampaigns,
+        originalPrice,
+        newPrice: Math.max(0, originalPrice - totalDiscount)
+    };
 };
 
-// POST Route för att lägga till produkt i kundvagn
-router.post('/:userId', async (req, res) => {
-    const { id, quantity } = req.body;
-
-    // Validera input
-    if (!id || !quantity || quantity < 1) {
-        return res.status(400).json({ message: 'Invalid item data' });
-    }
-
-    // Kontrollera att produkten finns i menyn
-    if (!(await isValidMenuItem(id))) {
-        return res.status(400).json({ message: 'Invalid product: Not on the menu' });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ message: 'Invalid product id' });
-    }
-
-
+// Lägg till vara i varukorgen
+router.post('/add', authMiddleware, async (req, res) => {
     try {
         const { item_id, quantity } = req.body;
         if (!item_id || !quantity) {
@@ -68,20 +75,18 @@ router.post('/:userId', async (req, res) => {
 
         let cart;
         if (req.user) {
-            // Om användaren är inloggad - lagra varukorgen i databasen
+
             cart = await Cart.findOne({ user_id: req.user.userId });
             if (!cart) {
                 cart = new Cart({ user_id: req.user.userId, items: [] });
             }
         } else {
-            // Om användaren är gäst - lagra varukorgen i sessionen
             if (!req.session.cart) {
                 req.session.cart = { items: [] };
             }
             cart = req.session.cart;
         }
 
-        // Kolla om varan redan finns i varukorgen
         const existingItem = cart.items.find(i => i.item_id.toString() === item_id);
         if (existingItem) {
             existingItem.quantity += quantity;
@@ -90,26 +95,33 @@ router.post('/:userId', async (req, res) => {
         }
 
         if (req.user) {
-            await cart.save(); // Spara varukorgen i databasen om användaren är inloggad
+            await cart.save();
         } else {
-            req.session.cart = cart; // Spara varukorgen i sessionen om användaren är gäst
-        }
+            req.session.cart = cart;
 
-        res.status(200).json({ message: 'Item added to cart', cart });
+        }
+        res.status(200).json({ message: 'Item added to cart', addedItem: {
+            _id: item._id,
+            title: item.title,
+            quantity: existingItem ? existingItem.quantity : quantity
+        } });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
-router.get('/', async (req, res) => {
+
+
+router.get('/', authMiddleware, async (req, res) => {
     try {
         let cart;
-        if (req.session.userId) {
-            // Hämta från databasen om inloggad
-            cart = await Cart.findOne({ user_id: req.session.userId })
-                .populate('items.item_id', 'title price desc'); // Se till att vi hämtar 'title', 'price', och 'desc'
+
+        if (req.user && req.user.userId) {
+            // För inloggad användare hämtar vi varukorgen från databasen
+            cart = await Cart.findOne({ user_id: req.user.userId })
+                .populate('items.item_id', 'title price desc');
         } else {
-            // Hämta från sessionen om gäst
+            // För gästanvändare hämtar vi varukorgen från sessionen (om du vill behålla stöd för gäster)
             cart = req.session.cart || { items: [] };
         }
 
@@ -117,17 +129,18 @@ router.get('/', async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
+        // Enhancerar objektet för varje vara i varukorgen (lägger till pris, totalpris, osv.)
         const enhancedItems = await Promise.all(cart.items.map(async item => {
             let itemObject;
-        
+
             if (typeof item.item_id === 'object' && item.item_id !== null) {
-                // Inloggad användare (Mongoose-dokument)
+                // För inloggad användare (Mongoose-dokument)
                 itemObject = item.item_id.toObject ? item.item_id.toObject() : item.item_id;
             } else {
-                // Gästanvändare (item_id är en sträng) – hämta från databasen
+                // För gästanvändare (item_id är en sträng) – hämtar från databasen
                 itemObject = await Item.findById(item.item_id).lean() || { _id: item.item_id, title: "Unknown", price: 0, desc: "" };
             }
-        
+
             return {
                 ...itemObject,
                 quantity: item.quantity,
@@ -135,121 +148,123 @@ router.get('/', async (req, res) => {
             };
         }));
 
-        // Beräkna grandTotal
-        const grandTotal = enhancedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+        // Beräkna kampanjer
+        const { totalDiscount, appliedCampaigns, originalPrice, newPrice } = calculateCampaigns(enhancedItems);
 
         res.json({
             cart: {
                 items: enhancedItems,
-                grandTotal
+                originalPrice,
+                newPrice,
+                totalDiscount,
+                appliedCampaigns
             }
         });
-
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
-
-// Rensa varukorgen (t.ex. vid utloggning)
-router.post('/remove', async (req, res) => {
-
-router.put('/:userId/plus/:itemId', async (req, res) => {
+router.post('/remove', authMiddleware, async (req, res) => {
     try {
-        //Hitta kundvagn
-        const cart = await Cart.findOne({ user_id: req.params.userId });
-
-        if (!cart) return res.status(404).json({ message: 'Cart not found' });
-
-        //Hitta item i kundvagn
-        const item = cart.items.find(item => item.item_id.toString() === req.params.itemId)
-
-        if (!item) { return res.status(404).json({ message: 'item not found' }); }
-
-        //Ökar med 1
-        item.quantity += 1;
-
-        //spara
-        await cart.save();
-
-        //Visa meddelande när vi lyckas lägga till item
-        res.json({ message: 'Added one more!', cart });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error adding quantity of item!', error });
-    }
-})
-
-router.put('/:userId/minus/:itemId', async (req, res) => {
-    try {
-        //Hitta kundvagn
-        const cart = await Cart.findOne({ user_id: req.params.userId });
-
-        if (!cart) return res.status(404).json({ message: 'Cart not found' });
-
-        //Hitta item i kundvagn
-        const item = cart.items.find(item => item.item_id.toString() === req.params.itemId)
-
-        if (!item) { return res.status(404).json({ message: 'item not found' }); }
-
-        //Minska kvantitet med 1
-        item.quantity -= 1;
-
-        //spara
-        await cart.save();
-
-        //Visa meddelande när vi lyckas tagit bort item
-        res.json({ message: 'Took one away!', cart });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error removing quantity of item!', error });
-    }
-})
-
-// DELETE Route för att ta bort produkt från kundvagn
-router.delete('/:userId/:itemId', async (req, res) => {
-
-    try {
-        const { item_id } = req.body;
+        const { item_id, quantity = 1 } = req.body; // om man inte anger quantity, sätts den till 1
+        
         if (!item_id) {
             return res.status(400).json({ message: 'Item ID is required' });
         }
 
+        if (quantity <= 0) {
+            return res.status(400).json({ message: 'Quantity must be at least 1' });
+        }
+
         let cart;
-        if (req.session.userId) {
-            // Inloggad användare - hämta varukorgen från databasen
-            cart = await Cart.findOne({ user_id: req.session.userId });
+        let itemDetails = null;
+        let removedQuantity = 0;
+
+        if (req.user?.userId) {
+            // Kollar loggad user
+            cart = await Cart.findOne({ user_id: req.user.userId })
+                          .populate('items.item_id', 'title price');
+            
             if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
-            // Hitta varan i varukorgen
-            const itemIndex = cart.items.findIndex(i => i.item_id.toString() === item_id);
+            const itemIndex = cart.items.findIndex(i => i.item_id._id.toString() === item_id);
+            
             if (itemIndex !== -1) {
-                if (cart.items[itemIndex].quantity > 1) {
-                    cart.items[itemIndex].quantity -= 1;
-                } else {
+                itemDetails = cart.items[itemIndex].item_id;
+                const currentQuantity = cart.items[itemIndex].quantity;
+                
+                if (quantity >= currentQuantity) {
+                    // Tar bort item helt om quantity sjunker till 0 eller mindre
+                    removedQuantity = currentQuantity;
                     cart.items.splice(itemIndex, 1);
+                } else {
+                    
+                    removedQuantity = quantity;
+                    cart.items[itemIndex].quantity -= quantity;
                 }
+                
                 await cart.save();
             }
         } else {
-            // Gästanvändare - hämta varukorgen från sessionen
+            // Guest user - session cart
             if (!req.session.cart) req.session.cart = { items: [] };
             cart = req.session.cart;
 
             const itemIndex = cart.items.findIndex(i => i.item_id === item_id);
+            
             if (itemIndex !== -1) {
-                if (cart.items[itemIndex].quantity > 1) {
-                    cart.items[itemIndex].quantity -= 1;
-                } else {
+                // Get item details from database
+                const item = await Item.findById(item_id).select('title price');
+                itemDetails = item || { _id: item_id, title: "Unknown Item" };
+                
+                const currentQuantity = cart.items[itemIndex].quantity;
+                
+                if (quantity >= currentQuantity) {
+                    removedQuantity = currentQuantity;
                     cart.items.splice(itemIndex, 1);
+                } else {
+                    removedQuantity = quantity;
+                    cart.items[itemIndex].quantity -= quantity;
                 }
+                
                 req.session.cart = cart;
             }
         }
 
-        res.json({ message: 'Item quantity updated', cart });
+        if (!itemDetails) {
+            const item = await Item.findById(item_id).select('title').lean() || 
+                         { _id: item_id, title: "Unknown Item" };
+            itemDetails = item;
+        }
+
+        if (removedQuantity > 0) {
+            res.json({ 
+                success: true,
+                message: `Successfully removed ${removedQuantity} ${removedQuantity === 1 ? 'item' : 'items'}`,
+                removedItem: {
+                    _id: itemDetails._id,
+                    title: itemDetails.title,
+                    quantityRemoved: removedQuantity,
+                    remainingQuantity: cart.items.find(i => 
+                        i.item_id._id?.toString() === item_id || 
+                        i.item_id.toString() === item_id
+                    )?.quantity || 0
+                },
+                cart
+            });
+        } else {
+            res.status(404).json({ 
+                success: false,
+                message: 'Item not found in cart' 
+            });
+        }
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 });
 
