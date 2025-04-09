@@ -1,0 +1,11 @@
+* {
+  color: black;
+  font-family: monospace;
+}
+
+.item {
+  border: solid 1px black;
+  background-color: rgb(235, 235, 235);
+  margin: 5px;
+  padding-left: 5px;
+}
