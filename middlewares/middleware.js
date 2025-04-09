@@ -1,4 +1,5 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 
 export const middleWare = (app) => {
     app.use(express.json()); //bara express.json() middleware
