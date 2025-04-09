@@ -100,7 +100,7 @@ router.post('/add', authMiddleware,
             req.session.cart = cart;
 
         }
-        res.status(200).json({ message: 'Item added to cart', cart });
+        res.status(200).json({ message: 'Item added to cart', addedItem: { _id: item._id, title: item.title, price: item.price, quantity: quantity }, cart });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
