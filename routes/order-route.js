@@ -34,14 +34,14 @@ router.post('/', authMiddleware, async (req, res) => {
             original_price: originalPrice,
             discount_applied: totalDiscount,
             applied_campaigns: appliedCampaigns,
-            delivery_time: deliveryTime,  
+            delivery_time: deliveryTime,
             items: cart.items.map(item => ({
                 item_id: item.item_id._id,
-                title: item.item_id.title, 
-                description: item.item_id.description, 
+                title: item.item_id.title,
+                description: item.item_id.description,
                 quantity: item.quantity,
-                price: item.item_id.price   
-            }))
+                price: item.item_id.price
+            })),
         });
 
         await newOrder.save();
@@ -88,7 +88,7 @@ router.get('/guest/:orderId', async (req, res) => {
 
         res.status(200).json(order);
     } catch (error) {
-        res.status (500).json({ message: 'Server Error', error });
+        res.status(500).json({ message: 'Server Error', error });
     }
 });
 
@@ -118,6 +118,6 @@ router.put('/:orderId/status', authMiddleware, async (req, res) => {
 
 router.get('/test', authMiddleware, (req, res) => {
     res.status(200).json({ message: 'You are authorized', user: req.user });
-  });
+});
 
 export default router;
