@@ -26,7 +26,7 @@ router.post('/register',
         zip_code: 'string',
         city: 'string',
         password: 'string'
-    }),
+    }, 'body'),
     async (req, res) => {
         try {
             const {
@@ -80,7 +80,7 @@ router.post('/login',
     validateData(['email', 'password'], {
         email: 'string',
         password: 'string'
-    }),
+    }, 'body'),
     async (req, res) => {
         try {
             const { email, password } = req.body;
