@@ -96,6 +96,7 @@ router.post('/add', authMiddleware,
 
         if (req.user) {
             await cart.save();
+            await cart.populate('items.item_id', 'title price desc');
         } else {
             req.session.cart = cart;
 
