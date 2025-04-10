@@ -1,4 +1,4 @@
-import mongoose, { disconnect } from "mongoose";
+import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema({
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false, default: null },
@@ -7,15 +7,15 @@ const orderSchema = new mongoose.Schema({
     discount_applied: { type: Number, required: false },
     applied_campaigns: [{
         name: { type: String },
-        discount: { type: Number }, 
+        discount: { type: Number },
         type: { type: String }
     }],
     delivery_time: { type: String, required: true },
     status: { type: String, enum: ['Pending', 'Completed', 'Cancelled'], default: 'Pending' },
     items: [{
         item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
-        title: { type: String, required: true },
-        description: { type: String },
+        title: { type: String, required: true },  // Här kan du överväga att göra `required: false` om du litar på berikning.
+        description: { type: String, default: "" }, // Om description är tomt, använd en tom sträng som standard.
         quantity: { type: Number, required: true },
         price: { type: Number, required: true }
     }],
@@ -28,8 +28,6 @@ const orderSchema = new mongoose.Schema({
         city: { type: String, default: "Guest" }
     },
     created_at: { type: Date, default: Date.now }
-
 });
-
 
 export const Order = mongoose.model('Order', orderSchema);

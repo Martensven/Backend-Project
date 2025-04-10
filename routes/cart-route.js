@@ -1,8 +1,9 @@
 import express from 'express';
 import { Cart } from '../models/cart.js';
 import { Item } from '../models/items.js';
+import { User } from '../models/users.js';
 import { authMiddleware } from '../middlewares/middleware.js';
-import  calculateCampaigns  from '../middlewares/campaignsValidation.js';
+import { applyCampaigns } from '../middlewares/campaignsValidation.js';
 import { validateData } from '../middlewares/dataValidation.js';
 
 const router = express.Router();
@@ -10,11 +11,16 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res) => {
     try {
         let cart;
+        let userInfo = null;
 
-        if (req.user && req.user.userId) {
-            cart = await Cart.findOne({ user_id: req.user.userId })
+        // För inloggade användare
+        if (req.user?._id) {
+            userInfo = await User.findById(req.user._id).lean();
+            cart = await Cart.findOne({ user_id: req.user._id })
                 .populate('items.item_id', 'title price desc');
-        } else {
+        } 
+        // För gäst användare
+        if (!cart) {
             cart = req.session.cart || { items: [] };
         }
 
@@ -22,49 +28,68 @@ router.get('/', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        const enhancedItems = await Promise.all(cart.items.map(async item => {
-            let itemObject;
+        // Bearbetning av varorna i varukorgen
+        const itemsToProcess = cart.items || [];
 
-            if (typeof item.item_id === 'object' && item.item_id !== null) {
-                itemObject = item.item_id.toObject ? item.item_id.toObject() : item.item_id;
-            } else {
-                itemObject = await Item.findById(item.item_id).lean() || { 
-                    _id: item.item_id, 
-                    title: "Unknown", 
-                    price: 0, 
-                    desc: "" 
+        const enhancedItems = await Promise.all(
+            itemsToProcess.map(async (item) => {
+                // Här ska du kontrollera att item.item_id är korrekt
+                const itemDetails = item.item_id ? item.item_id : await Item.findById(item.item_id);
+
+                return {
+                    _id: itemDetails._id,
+                    title: itemDetails.title,
+                    price: itemDetails.price,
+                    quantity: item.quantity,
+                    totalPrice: item.quantity * itemDetails.price
                 };
-            }
+            })
+        );
 
-            return {
-                ...itemObject,
-                quantity: item.quantity,
-                totalPrice: itemObject.price * item.quantity
-            };
-        }));
+        const campaignResults = applyCampaigns(enhancedItems);
 
-        // Use calculateCampaigns directly
-        const campaignResults = calculateCampaigns(enhancedItems);
+        // Logga ut varukorgen och första varan för att se strukturen
+        console.log("Cart:", cart);
+        console.log("First Item:", cart.items[0].item_id);
 
+        // Skicka responsen med den bearbetade varukorgen
         res.json({
             cart: {
-                ...campaignResults,
-                items: enhancedItems,
-                originalItems: cart.items
+                items: enhancedItems.map(item => ({
+                    _id: item._id,
+                    title: item.title,
+                    price: item.price,
+                    quantity: item.quantity,
+                    itemTotal: item.totalPrice
+                })),
+                campaigns: campaignResults.appliedCampaigns,
+                pricing: {
+                    originalTotal: campaignResults.originalPrice,
+                    totalDiscount: campaignResults.totalDiscount,
+                    finalPrice: campaignResults.newPrice
+                },
+                UserInformation: {
+                    first_name: userInfo?.first_name || "Guest",
+                    last_name: userInfo?.last_name || "Guest",
+                    email: userInfo?.email || "Guest",
+                    street: userInfo?.street || "Guest",
+                    zip_code: userInfo?.zip_code || "Guest",
+                    city: userInfo?.city || "Guest",
+                }
             }
         });
     } catch (error) {
-        console.error("Error in cart route:", error);
+        console.error("Cart route error:", error);
         res.status(500).json({ 
             message: 'Server error', 
             error: error.message 
         });
     }
 });
-
+;
 // Lägg till vara i varukorgen
 router.post('/add', authMiddleware,
-    // Validera att item_id och mäng är närvarande och av rätt type
+    // Validera att item_id och mäng är närvarande och av rätt typ
     validateData(['item_id', 'quantity'], {
         item_id: 'string',
         quantity: 'number'
@@ -80,9 +105,9 @@ router.post('/add', authMiddleware,
 
             let cart;
             if (req.user) {
-                cart = await Cart.findOne({ user_id: req.user.userId });
+                cart = await Cart.findOne({ user_id: req.user._id });
                 if (!cart) {
-                    cart = new Cart({ user_id: req.user.userId, items: [] });
+                    cart = new Cart({ user_id: req.user._id, items: [] });
                 }
             } else {
                 if (!req.session.cart) {
@@ -94,8 +119,12 @@ router.post('/add', authMiddleware,
             const existingItem = cart.items.find(i => i.item_id.toString() === item_id);
             if (existingItem) {
                 existingItem.quantity += quantity;
+                existingItem.price = item.price; 
+                existingItem.title = item.title; 
             } else {
-                cart.items.push({ item_id, quantity });
+                // Lägg till pris här också
+                cart.items.push({ item_id, quantity, price: item.price, title: item.title });
+
             }
 
             if (req.user) {
@@ -103,9 +132,18 @@ router.post('/add', authMiddleware,
                 await cart.populate('items.item_id', 'title price desc');
             } else {
                 req.session.cart = cart;
-
             }
-            res.status(200).json({ message: 'Item added to cart', addedItem: { _id: item._id, title: item.title, price: item.price, quantity: quantity }, cart });
+
+            res.status(200).json({ 
+                message: 'Item added to cart', 
+                addedItem: { 
+                    _id: item._id, 
+                    title: item.title, 
+                    price: item.price, 
+                    quantity: quantity 
+                }, 
+                cart 
+            });
         } catch (error) {
             res.status(500).json({ message: 'Server error', error: error.message });
         }
@@ -131,9 +169,9 @@ router.post('/remove', authMiddleware,
             let itemDetails = null;
             let removedQuantity = 0;
 
-            if (req.user?.userId) {
+            if (req.user?._id) {
                 // Kollar loggad user
-                cart = await Cart.findOne({ user_id: req.user.userId })
+                cart = await Cart.findOne({ user_id: req.user._id })
                     .populate('items.item_id', 'title price');
 
                 if (!cart) return res.status(404).json({ message: 'Cart not found' });
@@ -217,6 +255,5 @@ router.post('/remove', authMiddleware,
             });
         }
     });
-
 
 export default router;

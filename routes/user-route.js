@@ -2,8 +2,8 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import { User } from '../models/users.js';
 import { validateData } from '../middlewares/dataValidation.js';
+import { User } from '../models/users.js'; // Justera sökvägen beroende på din mappstruktur
 
 
 dotenv.config();
@@ -116,5 +116,7 @@ router.post('/login',
         }
     }
 );
+
+
 
 export default router;

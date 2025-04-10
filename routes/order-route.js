@@ -2,116 +2,87 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
-import { Item } from '../models/items.js'
-import {User} from '../models/users.js';
+import { Item } from '../models/items.js';
 import { calculateCampaigns } from '../middlewares/campaignsValidation.js';
-import { applyCampaigns } from '../middlewares/campaignsValidation.js';
 import { authMiddleware } from '../middlewares/middleware.js';
 import { validateData } from '../middlewares/dataValidation.js';
 
 const router = express.Router();
 
-// Validate MongoDB ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-//Hämtar items from cart.js genom en specifik user id eller genom session guest
 router.post('/', authMiddleware, async (req, res) => {
     try {
         let cart;
         let userId;
-        let fullUser = null;
 
         if (req.user) {
-            // För inloggade: kopiera pris/info från item_id till varje item
-            cart.items = cart.items.map(item => ({
-                item_id: item.item_id._id,
-                title: item.item_id.title,
-                price: item.item_id.price,
-                description: item.item_id.description,
-                quantity: item.quantity
-            }));
-        }
-         else {
+            userId = req.user.userId;
+            cart = await Cart.findOne({ user_id: userId });
+        } else {
             if (!req.session.cart || req.session.cart.items.length === 0) {
                 return res.status(400).json({ message: 'Cart is empty' });
             }
             cart = req.session.cart;
         }
 
-        if (!cart || cart.items.length === 0) {
-            return res.status(400).json({ message: 'Cart is empty' });
+        if (!cart || !cart.items || cart.items.length === 0) {
+            return res.status(400).json({ message: 'Cart is empty or invalid' });
         }
 
-        if (!req.user) {
-            const enrichedItems = await Promise.all(cart.items.map(async (item) => {
-                const fullItem = await Item.findById(item.item_id);
-                if (fullItem) {
-                    return {
-                        item_id: fullItem._id,
-                        title: fullItem.title,
-                        price: fullItem.price,
-                        description: fullItem.description,
-                        quantity: item.quantity
-                    };
-                } else {
-                    return null;
-                }
-            }));
-            cart.items = enrichedItems.filter(item => item !== null);
-        } else {
-            const enrichedItems = await Promise.all(cart.items.map(async (item) => {
-                const fullItem = await Item.findById(item.item_id);
-                if (fullItem) {
-                    return {
-                        item_id: fullItem._id,
-                        title: fullItem.title,
-                        price: fullItem.price,
-                        description: fullItem.description,
-                        quantity: item.quantity
-                    };
-                } else {
-                    return null;
-                }
-            }));
-            cart.items = enrichedItems.filter(item => item !== null);
-        }
+        // Enrich cart items with full data from Item model
+        const enrichedItems = await Promise.all(cart.items.map(async (item) => {
+            const fullItem = await Item.findById(item.item_id);
+            if (!fullItem) return null;
 
-        const preparedItems = cart.items
-            .filter(item => item && item.price && item.quantity)
-            .map(item => ({
-                title: item.title,
-                price: item.price,
+            return {
+                item_id: fullItem._id,
+                title: fullItem.title,
+                description: fullItem.description || '',
+                price: fullItem.price,
                 quantity: item.quantity
-            }));
+            };
+        }));
+
+        const filteredItems = enrichedItems.filter(item => item !== null);
+        if (filteredItems.length === 0) {
+            
+            return res.status(400).json({ message: 'No valid items in cart' });
+        }
+
+        // Prepare simplified items for campaign calculation
+        const preparedItems = filteredItems.map(item => ({
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity
+        }));
 
         const { newPrice, totalDiscount, appliedCampaigns, originalPrice } = calculateCampaigns(preparedItems);
-        const deliveryTime = `${Math.floor(Math.random() * 60) + 1} min`;
+
+        const deliveryMinutes = Math.floor(Math.random() * 60) + 1;
+        const deliveryTime = `${deliveryMinutes} min`;
 
         const newOrder = new Order({
             user_id: userId || undefined,
-            total_price: newPrice, 
+            total_price: newPrice,
             original_price: originalPrice,
             discount_applied: totalDiscount,
             applied_campaigns: appliedCampaigns,
             delivery_time: deliveryTime,
-            items: cart.items.map(item => ({
-                item_id: item.item_id._id,
-                title: item.title,
-                quantity: item.quantity,
-                price: item.price
-            })),
+            items: filteredItems, // contains title, description, price, quantity
             user_info: {
-                first_name: fullUser?.first_name || "Guest",
-                last_name: fullUser?.last_name || "Guest",
-                email: fullUser?.email || "Guest",
-                street: fullUser?.street || "Guest",
-                zip_code: fullUser?.zip_code || "Guest",
-                city: fullUser?.city || "Guest"
+                first_name: 'Guest',
+                last_name: 'Guest',
+                email: 'Guest',
+                street: 'Guest',
+                zip_code: 'Guest',
+                city: 'Guest'
             }
         });
 
         await newOrder.save();
 
+        // Clear cart
         if (req.user) {
             await Cart.findOneAndDelete({ user_id: userId });
         } else {
@@ -120,9 +91,11 @@ router.post('/', authMiddleware, async (req, res) => {
 
         res.status(201).json({ message: 'Order created successfully', order: newOrder, orderId: newOrder._id });
     } catch (error) {
+        console.error("Error during order creation:", error);
         res.status(500).json({ message: 'Internal Server Error', error: error.message });
     }
 });
+
 
 
 //visar upp den specifika datan från userId 
