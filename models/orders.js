@@ -1,7 +1,7 @@
 import mongoose, { disconnect } from "mongoose";
 
 const orderSchema = new mongoose.Schema({
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false, default: null },
     total_price: { type: Number, required: true },
     original_price: { type: Number, required: false },
     discount_applied: { type: Number, required: false },
