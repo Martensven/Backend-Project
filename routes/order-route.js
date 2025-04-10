@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
 import { Item } from '../models/items.js'
+import {User} from '../models/users.js';
 import { calculateCampaigns } from '../middlewares/campaignsValidation.js';
 import { authMiddleware } from '../middlewares/middleware.js';
 import { validateData } from '../middlewares/dataValidation.js';
@@ -17,11 +18,19 @@ router.post('/', authMiddleware, async (req, res) => {
     try {
         let cart;
         let userId;
+        let fullUser = null;
 
         if (req.user) {
-            userId = req.user.userId;
-            cart = await Cart.findOne({ user_id: userId }).populate('items.item_id');
-        } else {
+            // För inloggade: kopiera pris/info från item_id till varje item
+            cart.items = cart.items.map(item => ({
+                item_id: item.item_id._id,
+                title: item.item_id.title,
+                price: item.item_id.price,
+                description: item.item_id.description,
+                quantity: item.quantity
+            }));
+        }
+         else {
             if (!req.session.cart || req.session.cart.items.length === 0) {
                 return res.status(400).json({ message: 'Cart is empty' });
             }
@@ -31,7 +40,8 @@ router.post('/', authMiddleware, async (req, res) => {
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ message: 'Cart is empty' });
         }
-        
+
+        // För gäster – hämta item info från DB
         if (!req.user) {
             const enrichedItems = await Promise.all(cart.items.map(async (item) => {
                 const fullItem = await Item.findById(item.item_id);
@@ -45,7 +55,7 @@ router.post('/', authMiddleware, async (req, res) => {
             }));
             cart.items = enrichedItems;
         }
-        
+
         const preparedItems = cart.items
             .filter(item => item && item.price && item.quantity)
             .map(item => ({
@@ -55,9 +65,7 @@ router.post('/', authMiddleware, async (req, res) => {
             }));
 
         const { newPrice, totalDiscount, appliedCampaigns, originalPrice } = calculateCampaigns(preparedItems);
-
-        const deliveryMinutes = Math.floor(Math.random() * 60) + 1;
-        const deliveryTime = `${deliveryMinutes} min`;
+        const deliveryTime = `${Math.floor(Math.random() * 60) + 1} min`;
 
         const newOrder = new Order({
             user_id: userId || undefined,
@@ -73,11 +81,17 @@ router.post('/', authMiddleware, async (req, res) => {
                 quantity: item.quantity,
                 price: item.item_id.price
             })),
+            user_info: {
+                first_name: fullUser?.first_name || "Guest",
+                last_name: fullUser?.last_name || "Guest",
+                email: fullUser?.email || "Guest",
+                street: fullUser?.street || "Guest",
+                zip_code: fullUser?.zip_code || "Guest",
+                city: fullUser?.city || "Guest"
+            }
         });
 
         await newOrder.save();
-
-        const orderId = newOrder._id;
 
         if (req.user) {
             await Cart.findOneAndDelete({ user_id: userId });
@@ -94,7 +108,7 @@ router.post('/', authMiddleware, async (req, res) => {
 //visar upp den specifika datan från userId 
 router.get('/history/user', authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user._id;
 
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: 'Invalid user ID' });

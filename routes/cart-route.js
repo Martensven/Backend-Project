@@ -8,12 +8,13 @@ import { validateData } from '../middlewares/dataValidation.js';
 const router = express.Router();
 
 router.get('/', authMiddleware, async (req, res) => {
+    console.log('REQ.USER:', req.user);
     try {
         let cart;
 
-        if (req.user && req.user.userId) {
+        if (req.user && req.user._id) {
             // För inloggad användare hämtar vi varukorgen från databasen
-            cart = await Cart.findOne({ user_id: req.user.userId })
+            cart = await Cart.findOne({ user_id: req.user._id })
                 .populate('items.item_id', 'title price desc');
         } else {
             // För gästanvändare hämtar vi varukorgen från sessionen (om du vill behålla stöd för gäster)
@@ -49,8 +50,16 @@ router.get('/', authMiddleware, async (req, res) => {
         // Return enhanced cart with campaign results
         res.json({
             cart: {
-                ...campaignResults,
-                originalItems: cart.items
+                Items: cart.items,
+                ...campaignResults
+            },
+            UserInformation:{
+                first_name: req.user?.first_name || "Guest",
+                last_name: req.user?.last_name || "Guest",
+                email: req.user?.email || "Guest",
+                street: req.user?.street || "Guest",
+                zip_code: req.user?.zip_code || "Guest",
+                city: req.user?.city || "Guest",
             }
         });
     } catch (error) {
@@ -76,9 +85,10 @@ router.post('/add', authMiddleware,
 
             let cart;
             if (req.user) {
-                cart = await Cart.findOne({ user_id: req.user.userId });
+                cart = await Cart.findOne({ user_id: req.user._id });
+
                 if (!cart) {
-                    cart = new Cart({ user_id: req.user.userId, items: [] });
+                    cart = new Cart({ user_id: req.user._id, items: [] });
                 }
             } else {
                 if (!req.session.cart) {
@@ -129,7 +139,7 @@ router.post('/remove', authMiddleware,
 
             if (req.user?.userId) {
                 // Kollar loggad user
-                cart = await Cart.findOne({ user_id: req.user.userId })
+                cart = await Cart.findOne({ user_id: req.user._id })
                     .populate('items.item_id', 'title price');
 
                 if (!cart) return res.status(404).json({ message: 'Cart not found' });
