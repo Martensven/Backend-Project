@@ -16,7 +16,8 @@ const orderSchema = new mongoose.Schema({
         item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
         title: { type: String, required: true },
         description: { type: String },
-        quantity: { type: Number, required: true }
+        quantity: { type: Number, required: true },
+        price: { type: Number, required: true }
     }],
     user_info: {
         first_name: { type: String, default: "Guest" },
@@ -27,6 +28,7 @@ const orderSchema = new mongoose.Schema({
         city: { type: String, default: "Guest" }
     },
     created_at: { type: Date, default: Date.now }
+
 });
 
 
