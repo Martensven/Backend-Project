@@ -4,6 +4,7 @@ import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
 import { Item } from '../models/items.js'
 import { calculateCampaigns } from '../middlewares/campaignsValidation.js';
+import { applyCampaigns } from '../middlewares/campaignsValidation.js';
 import { authMiddleware } from '../middlewares/middleware.js';
 import { validateData } from '../middlewares/dataValidation.js';
 
@@ -28,24 +29,44 @@ router.post('/', authMiddleware, async (req, res) => {
             cart = req.session.cart;
         }
 
-        if (!cart || cart.items.length === 0) {
-            return res.status(400).json({ message: 'Cart is empty' });
-        }
-        
         if (!req.user) {
             const enrichedItems = await Promise.all(cart.items.map(async (item) => {
                 const fullItem = await Item.findById(item.item_id);
-                return {
-                    item_id: fullItem._id,
-                    title: fullItem.title,
-                    price: fullItem.price,
-                    description: fullItem.description,
-                    quantity: item.quantity
-                };
+                if (fullItem) {
+                    return {
+                        item_id: fullItem._id,
+                        title: fullItem.title,
+                        price: fullItem.price,
+                        description: fullItem.description,
+                        quantity: item.quantity
+                    };
+                } else {
+                    return null;
+                }
             }));
-            cart.items = enrichedItems;
+            cart.items = enrichedItems.filter(item => item !== null);
+        } else {
+            const enrichedItems = await Promise.all(cart.items.map(async (item) => {
+                const fullItem = await Item.findById(item.item_id);
+                if (fullItem) {
+                    return {
+                        item_id: fullItem._id,
+                        title: fullItem.title,
+                        price: fullItem.price,
+                        description: fullItem.description,
+                        quantity: item.quantity
+                    };
+                } else {
+                    return null;
+                }
+            }));
+            cart.items = enrichedItems.filter(item => item !== null);
         }
-        
+        console.log("Enriched Cart Items for User:", cart.items); 
+        if (!cart || cart.items.length === 0) {
+            return res.status(400).json({ message: 'Cart is empty' });
+        }
+
         const preparedItems = cart.items
             .filter(item => item && item.price && item.quantity)
             .map(item => ({
@@ -61,17 +82,16 @@ router.post('/', authMiddleware, async (req, res) => {
 
         const newOrder = new Order({
             user_id: userId || undefined,
-            total_price: newPrice,
+            total_price: newPrice, 
             original_price: originalPrice,
             discount_applied: totalDiscount,
             applied_campaigns: appliedCampaigns,
             delivery_time: deliveryTime,
             items: cart.items.map(item => ({
                 item_id: item.item_id._id,
-                title: item.item_id.title,
-                description: item.item_id.description,
+                title: item.title,
                 quantity: item.quantity,
-                price: item.item_id.price
+                price: item.price
             })),
         });
 
@@ -90,6 +110,7 @@ router.post('/', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error', error: error.message });
     }
 });
+
 
 //visar upp den specifika datan från userId 
 router.get('/history/user', authMiddleware, async (req, res) => {

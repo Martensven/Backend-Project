@@ -53,9 +53,12 @@ export const calculateCampaigns = (items) => {
     };
 };
 
-export const applyCampaigns = () => {
-    return (items) => {
-        return calculateCampaigns(items);
-    };
-};
+export const applyCampaigns = (items) => {
+    const formattedItems = items.map(item => ({
+        price: item.item_id.price,  // Ensure price is pulled correctly
+        quantity: item.quantity,    // Ensure quantity is passed correctly
+        title: item.item_id.title   // Ensure title is passed
+    }));
 
+    return calculateCampaigns(formattedItems);
+};
