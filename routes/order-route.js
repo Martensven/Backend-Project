@@ -2,7 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
-import { calculateCampaigns } from './cart-route.js';
+import { calculateCampaigns } from '../middlewares/campaignsValidation.js';
 import { authMiddleware } from '../middlewares/middleware.js';
 import { validateData } from '../middlewares/dataValidation.js';
 
@@ -97,7 +97,7 @@ router.get('/history/:orderId', validateData(['orderId'], { orderId: 'string' },
 });
 
 //PUT för Complete och Cancelled 
-router.put('/status/:orderId', authMiddleware, validateData(['orderId'], { orderId: 'string' }, 'params'), validateData(['status'], { status: 'string' }, 'body') , async (req, res) => {
+router.put('/status/:orderId', authMiddleware, validateData(['orderId'], { orderId: 'string' }, 'params'), validateData(['status'], { status: 'string' }, 'body'), async (req, res) => {
     try {
         const { orderId } = req.params;
         const { status } = req.body;
