@@ -7,59 +7,56 @@ import { validateData } from '../middlewares/dataValidation.js';
 
 const router = express.Router();
 
-// Fixed kampanjer som finns för affären
-export const calculateCampaigns = (items) => {
-    const now = new Date();
-    const juneEnd = new Date(now.getFullYear(), 5, 30); // till slutet av juni
-    
-    let totalDiscount = 0;
-    const appliedCampaigns = [];
-    const originalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    // 1. 10% rabatt under perioden (idag till 30 juni)
-    if (now <= juneEnd) {
-        const discount = originalPrice * 0.1;
-        totalDiscount += discount;
-        appliedCampaigns.push({
-            name: "Sommarrabatt 10% (gäller t.o.m. 30 juni)",
-            discount: discount,
-            type: "percentage"
+router.get('/', authMiddleware, async (req, res) => {
+    try {
+        let cart;
+
+        if (req.user && req.user.userId) {
+            // För inloggad användare hämtar vi varukorgen från databasen
+            cart = await Cart.findOne({ user_id: req.user.userId })
+                .populate('items.item_id', 'title price desc');
+        } else {
+            // För gästanvändare hämtar vi varukorgen från sessionen (om du vill behålla stöd för gäster)
+            cart = req.session.cart || { items: [] };
+        }
+
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+        // Prepare items for campaign calculation
+        const enhancedItems = await Promise.all(cart.items.map(async item => {
+            let itemObject;
+
+            if (typeof item.item_id === 'object' && item.item_id !== null) {
+                // Logged-in user (Mongoose document)
+                itemObject = item.item_id.toObject ? item.item_id.toObject() : item.item_id;
+            } else {
+                // Guest user (item_id is a string) - fetch from database
+                itemObject = await Item.findById(item.item_id).lean() || { _id: item.item_id, title: "Unknown", price: 0, desc: "" };
+            }
+
+            return {
+                ...itemObject,
+                quantity: item.quantity,
+                totalPrice: itemObject.price * item.quantity
+            };
+        }));
+
+        // Calculate campaigns directly
+        const campaignResults = applyCampaigns()(enhancedItems);
+
+        // Return enhanced cart with campaign results
+        res.json({
+            cart: {
+                ...campaignResults,
+                originalItems: cart.items
+            }
         });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
-    
-    // 2. 50 kr rabatt om mer än 5 varor
-    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-    if (totalQuantity > 5) {
-        totalDiscount += 50;
-        appliedCampaigns.push({
-            name: "Rabatt på storköp (50 kr för 5+ varor)",
-            discount: 50,
-            type: "fixed"
-        });
-    }
-    
-    // 3. 10 kr rabatt på bryggkaffe
-    const coffeeItems = items.filter(item => 
-        item.title.toLowerCase().includes('bryggkaffe')
-    );
-    
-    if (coffeeItems.length > 0) {
-        const discount = coffeeItems.reduce((sum, item) => sum + (10 * item.quantity), 0);
-        totalDiscount += discount;
-        appliedCampaigns.push({
-            name: "10 kr rabatt på bryggkaffe",
-            discount: discount,
-            type: "item_discount"
-        });
-    }
-    
-    return { 
-        totalDiscount: Math.min(totalDiscount, originalPrice), // Förhindra negativa summor
-        appliedCampaigns,
-        originalPrice,
-        newPrice: Math.max(0, originalPrice - totalDiscount)
-    };
-};
+});
 
 // Lägg till vara i varukorgen
 router.post('/add', authMiddleware, 
@@ -93,11 +90,11 @@ router.post('/add', authMiddleware,
         const existingItem = cart.items.find(i => i.item_id.toString() === item_id);
         if (existingItem) {
             existingItem.quantity += quantity;
-            existingItem.price = item.price
+            existingItem.price === item.price;
         } else {
             cart.items.push({ item_id, quantity, price: item.price });
         }
-        console.log("Cart items before saving:", cart.items);
+
         if (req.user) {
             await cart.save();
             await cart.populate('items.item_id', 'title price desc');
@@ -105,7 +102,6 @@ router.post('/add', authMiddleware,
             req.session.cart = cart;
 
         }
-        console.log("Item price from DB:", item.price);
         res.status(200).json({ message: 'Item added to cart', addedItem: { _id: item._id, title: item.title, price: item.price, quantity: quantity }, cart });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });

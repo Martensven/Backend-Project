@@ -4,7 +4,6 @@ import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
 import { Item } from '../models/items.js'
 import { calculateCampaigns } from '../middlewares/campaignsValidation.js';
-import { applyCampaigns } from '../middlewares/campaignsValidation.js';
 import { authMiddleware } from '../middlewares/middleware.js';
 import { validateData } from '../middlewares/dataValidation.js';
 
@@ -62,7 +61,6 @@ router.post('/', authMiddleware, async (req, res) => {
             }));
             cart.items = enrichedItems.filter(item => item !== null);
         }
-        console.log("Enriched Cart Items for User:", cart.items); 
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ message: 'Cart is empty' });
         }
