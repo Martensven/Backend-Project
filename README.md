@@ -366,7 +366,7 @@ Post /orders
 
 **Request:**
 ```
-GET /orders/user
+GET /orders/history/user
 ```
 
 **Response Example:**
@@ -489,7 +489,7 @@ GET /orders/history/:orderId
 
 **Request:**
 ```
-PUT /orders/:orderId/status
+PUT /orders/status/:orderId
 
 BODY JSON:
 {
