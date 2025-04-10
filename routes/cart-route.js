@@ -5,6 +5,7 @@ import { User } from '../models/users.js';
 import { authMiddleware } from '../middlewares/middleware.js';
 import { applyCampaigns } from '../middlewares/campaignsValidation.js';
 import { validateData } from '../middlewares/dataValidation.js';
+import { validateCartPrices } from '../middlewares/validateCartPrices.js';
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
         const enhancedItems = await Promise.all(
             itemsToProcess.map(async (item) => {
-                // Här ska du kontrollera att item.item_id är korrekt
+                // kontrollera att item.item_id är korrekt
                 const itemDetails = item.item_id ? item.item_id : await Item.findById(item.item_id);
 
                 return {
@@ -89,12 +90,13 @@ router.get('/', authMiddleware, async (req, res) => {
 ;
 // Lägg till vara i varukorgen
 router.post('/add', authMiddleware,
-    // Validera att item_id och mäng är närvarande och av rätt typ
     validateData(['item_id', 'quantity'], {
         item_id: 'string',
         quantity: 'number'
-    }),
-    async (req, res) => {
+        }),
+        // Validerar pricerna i varukorgeen genom att jämföra med databasen
+        validateCartPrices, 
+        async (req, res) => {
         try {
             const { item_id, quantity } = req.body;
 
@@ -133,7 +135,7 @@ router.post('/add', authMiddleware,
             } else {
                 req.session.cart = cart;
             }
-
+            console.log(`✔️ Pris validerat: ${item.title} har pris ${item.price} kr och har lagts till i varukorgen.`);
             res.status(200).json({ 
                 message: 'Item added to cart', 
                 addedItem: { 
