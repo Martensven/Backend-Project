@@ -46,7 +46,6 @@ router.post('/', authMiddleware, async (req, res) => {
             cart.items = enrichedItems;
         }
         
-        // Prepare items safely
         const preparedItems = cart.items
             .filter(item => item && item.price && item.quantity)
             .map(item => ({
@@ -58,7 +57,7 @@ router.post('/', authMiddleware, async (req, res) => {
         const { newPrice, totalDiscount, appliedCampaigns, originalPrice } = calculateCampaigns(preparedItems);
 
         const deliveryMinutes = Math.floor(Math.random() * 60) + 1;
-        const deliveryTime = `${deliveryMinutes} minutes`;
+        const deliveryTime = `${deliveryMinutes} min`;
 
         const newOrder = new Order({
             user_id: userId || undefined,
@@ -80,6 +79,12 @@ router.post('/', authMiddleware, async (req, res) => {
 
         const orderId = newOrder._id;
 
+        if (req.user) {
+            await Cart.findOneAndDelete({ user_id: userId });
+        } else {
+            req.session.cart = null;
+        }
+
         res.status(201).json({ message: 'Order created successfully', order: newOrder, orderId: newOrder._id });
     } catch (error) {
         res.status(500).json({ message: 'Internal Server Error', error: error.message });
@@ -87,7 +92,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 //visar upp den specifika datan från userId 
-router.get('/user', authMiddleware, async (req, res) => {
+router.get('/history/user', authMiddleware, async (req, res) => {
     try {
         const userId = req.user.userId;
 
