@@ -2,7 +2,8 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
-import { calculateCampaigns } from './cart-route.js';
+import { Item } from '../models/items.js'
+import { calculateCampaigns } from '../middlewares/campaignsValidation.js';
 import { authMiddleware } from '../middlewares/middleware.js';
 import { validateData } from '../middlewares/dataValidation.js';
 
@@ -11,29 +12,56 @@ const router = express.Router();
 // Validate MongoDB ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-//Hämtar items from cart.js genom en specifik user id
+//Hämtar items from cart.js genom en specifik user id eller genom session guest
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.userId;
+        let cart;
+        let userId;
 
-        const cart = await Cart.findOne({ user_id: userId }).populate('items.item_id');
+        if (req.user) {
+            userId = req.user.userId;
+            cart = await Cart.findOne({ user_id: userId }).populate('items.item_id');
+        } else {
+            if (!req.session.cart || req.session.cart.items.length === 0) {
+                return res.status(400).json({ message: 'Cart is empty' });
+            }
+            cart = req.session.cart;
+        }
+
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ message: 'Cart is empty' });
         }
-
-        const preparedItems = cart.items.map(item => ({
-            title: item.item_id.title,
-            price: item.item_id.price,
-            quantity: item.quantity
-        }));
+        
+        if (!req.user) {
+            const enrichedItems = await Promise.all(cart.items.map(async (item) => {
+                const fullItem = await Item.findById(item.item_id);
+                return {
+                    item_id: fullItem._id,
+                    title: fullItem.title,
+                    price: fullItem.price,
+                    description: fullItem.description,
+                    quantity: item.quantity
+                };
+            }));
+            cart.items = enrichedItems;
+        }
+        
+        // Prepare items safely
+        const preparedItems = cart.items
+            .filter(item => item && item.price && item.quantity)
+            .map(item => ({
+                title: item.title,
+                price: item.price,
+                quantity: item.quantity
+            }));
 
         const { newPrice, totalDiscount, appliedCampaigns, originalPrice } = calculateCampaigns(preparedItems);
 
-        const deliveryHour = Math.floor(Math.random() * 20) + 1;
-        const deliveryTime = `${deliveryHour} hours`;
+        const deliveryMinutes = Math.floor(Math.random() * 60) + 1;
+        const deliveryTime = `${deliveryMinutes} minutes`;
 
         const newOrder = new Order({
-            user_id: userId,
+            user_id: userId || undefined,
             total_price: newPrice,
             original_price: originalPrice,
             discount_applied: totalDiscount,
@@ -50,7 +78,9 @@ router.post('/', authMiddleware, async (req, res) => {
 
         await newOrder.save();
 
-        res.status(201).json({ message: 'Order created successfully', order: newOrder });
+        const orderId = newOrder._id;
+
+        res.status(201).json({ message: 'Order created successfully', order: newOrder, orderId: newOrder._id });
     } catch (error) {
         res.status(500).json({ message: 'Internal Server Error', error: error.message });
     }
@@ -81,7 +111,7 @@ router.get('/history/:orderId', validateData(['orderId'], { orderId: 'string' },
     try {
         const orderId = req.params.orderId;
 
-        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        if (!isValidObjectId(orderId)) {
             return res.status(400).json({ message: 'Invalid order ID' });
         }
 
@@ -101,6 +131,10 @@ router.put('/status/:orderId', authMiddleware, validateData(['orderId'], { order
     try {
         const { orderId } = req.params;
         const { status } = req.body;
+
+        if(!isValidObjectId(orderId)) {
+            return res.status(400).json({ message: 'Invalid order ID' });
+        }
 
         if (!status || !['Completed', 'Cancelled'].includes(status)) {
             return res.status(400).json({ message: 'Invalid status, must be "Completed" or "Cancelled"' });

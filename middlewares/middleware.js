@@ -9,7 +9,7 @@ export const middleWare = (app) => {
 export const authMiddleware = (req, res, next) => {
     const token = req.header('Authorization');
 
-    if (!token) {
+    if (!token || !token.startsWith('Bearer ')) {
         // Ingen token innebär att vi tillåter gästanvändare
         req.user = null;
         return next(); // Fortsätt till nästa middleware

@@ -30,17 +30,19 @@ export const calculateCampaigns = (items) => {
 
     // 3. 10 kr rabatt på bryggkaffe
     const coffeeItems = items.filter(item =>
-        item.title.toLowerCase().includes('bryggkaffe')
+        item.title && item.title.toLowerCase().includes('bryggkaffe')
     );
 
     if (coffeeItems.length > 0) {
-        const discount = coffeeItems.reduce((sum, item) => sum + (10 * item.quantity), 0);
-        totalDiscount += discount;
-        appliedCampaigns.push({
-            name: "10 kr rabatt på bryggkaffe",
-            discount: discount,
-            type: "item_discount"
-        });
+        const discount = coffeeItems.reduce((sum, item) => {const qty = Number(item.quantity || 0); return sum + (10 * qty);}, 0);
+        if (!isNaN(discount)) {
+            totalDiscount += discount;
+            appliedCampaigns.push({
+                name: "10 kr rabatt på bryggkaffe",
+                discount: discount,
+                type: "item_discount"
+            });
+        }
     }
 
     return {
