@@ -26,11 +26,17 @@ const OrderList = () => {
         try {
             const updatedOrder = await updateOrderStatus(orderId, status);
             toast.success(`Order ${status}`);
-            setOrders(orders.map(order => order._id === updatedOrder._id ? updatedOrder : order));
+
+            // Uppdatera ordersidan direkt
+            const updatedOrders = await fetchOrders();
+            setOrders(updatedOrders);
+
         } catch (err) {
             toast.error('Failed to update order status');
         }
     };
+
+
 
     return (
         <div>
@@ -39,26 +45,37 @@ const OrderList = () => {
                 <p>You have no orders yet.</p>
             ) : (
                 <ul>
-                    {orders.map(order => (
-                        <li key={order._id}>
-                            <div>
-                                <h3>Order {order._id}</h3>
-                                <p>Status: {order.status}</p>
-                                <p>Total Price: {order.total_price} kr</p>
-                                <p>Items:</p>
-                                <ul>
-                                    {order.items.map(item => (
-                                        <li key={item._id}>
-                                            {item.title} x {item.quantity} - {item.price * item.quantity} kr
-                                        </li>
-                                    ))}
-                                </ul>
-                                <p>Delivery Time: {order.delivery_time}</p>
-                                <button onClick={() => handleStatusUpdate(order._id, 'Completed')}>Complete</button>
-                                <button onClick={() => handleStatusUpdate(order._id, 'Cancelled')}>Cancel</button>
-                            </div>
-                        </li>
-                    ))}
+                    {orders.map(order => {
+                        const now = new Date();
+                        const deliveryDeadline = new Date(order.delivery_time);
+                        const isDeliveryPassed = now >= deliveryDeadline;
+
+                        return (
+                            <li key={order._id} style={{ borderBottom: '1px solid #ddd', padding: '10px 0', display: 'flex', alignItems: 'center' }}>
+                                <div>
+                                    <h3>Order {order._id}</h3>
+                                    <p>Status: {order.status}</p>
+                                    <p>Total Price: {order.total_price} kr</p>
+                                    <p>Items:</p>
+                                    <ul>
+                                        {order.items.map(item => (
+                                            <li key={item._id}>
+                                                {item.title} x {item.quantity} - {item.price * item.quantity} kr
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <p>Delivery Time: {order.delivery_time}</p>
+
+                                    {order.status !== 'Cancelled' && order.status !== 'Completed' && (
+                                        <>
+                                            <button onClick={() => handleStatusUpdate(order._id, 'Completed')}>Complete</button>
+                                            <button onClick={() => handleStatusUpdate(order._id, 'Cancelled')}>Cancel</button>
+                                        </>
+                                    )}
+                                </div>
+                            </li>
+                        );
+                    })}
                 </ul>
             )}
         </div>

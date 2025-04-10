@@ -20,6 +20,7 @@ const Header = () => {
                 <Link to="/items"><button>Items</button></Link>
                 <Link to="/cart"><button>Cart</button></Link>
                 <Link to="/orders"><button>Orders</button></Link>
+                <Link to="/session-tester"><button>Session-tester</button></Link>
 
                 {/* Visa Login om användaren inte är inloggad */}
                 {!isLoggedIn ? (

@@ -32,7 +32,7 @@ export const fetchOrders = async () => {
 // Skapa en ny order
 export const createOrder = async () => {
     try {
-        const response = await fetchWithAuth('/orders', { method: 'POST' });
+        const response = await fetchWithAuth('/orders', { method: 'POST', credentials: 'include' });
         if (!response.ok) {
             throw new Error('Failed to create order');
         }
@@ -49,6 +49,7 @@ export const updateOrderStatus = async (orderId, status) => {
     try {
         const response = await fetchWithAuth(`/orders/status/${orderId}`, {
             method: 'PUT',
+            credentials: 'include',
             body: JSON.stringify({ status }),
         });
         if (!response.ok) {

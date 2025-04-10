@@ -10,6 +10,7 @@ import { AuthProvider } from './components/context/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import { CreateOrder } from './components/createorder.jsx';
 import OrderList from './components/order.jsx'
+import SessionTester from './components/sessiontester.jsx';
 
 
 
@@ -29,10 +30,10 @@ function App() {
           <Route path="/orders" element={<OrderList />} />
           <Route path="/create-order" element={<CreateOrder />} />
           <Route path="/cart" element={<Cart />}></Route>
+          <Route path="/session-tester" element={<SessionTester />}></Route>
         </Routes>
         <ToastContainer position="top-right" autoClose={2000} />
       </AuthProvider>
-
     </>
 
   )
