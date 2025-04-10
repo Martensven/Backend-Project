@@ -62,7 +62,7 @@ router.post('/', authMiddleware, async (req, res) => {
             }));
             cart.items = enrichedItems.filter(item => item !== null);
         }
-        console.log("Enriched Cart Items for User:", cart.items); 
+
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ message: 'Cart is empty' });
         }
