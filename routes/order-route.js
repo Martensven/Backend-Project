@@ -132,7 +132,7 @@ router.get('/history/:orderId', validateData(['orderId'], { orderId: 'string' },
 });
 
 //PUT för Complete och Cancelled 
-router.put('/status/:orderId', authMiddleware, validateData(['orderId'], { orderId: 'string' }, 'params'), validateData(['status'], { status: 'string' }, 'body') , async (req, res) => {
+router.put('/status/:orderId', authMiddleware, validateData(['orderId'], { orderId: 'string' }, 'params'), validateData(['status'], { status: 'string' }, 'body'), async (req, res) => {
     try {
         const { orderId } = req.params;
         const { status } = req.body;
