@@ -302,7 +302,7 @@ Content-Type: application/json
 
 **POST: Skapa ny Order**
 
-**Header:**
+**Header: (Behövs inte om du ska göra som session guest)**
 - Authorization: Bearer [din jwt token]
 
 **Request:**
@@ -315,7 +315,7 @@ Post /orders
 {
 	"message": "Order created successfully",
 	"order": {
-		"user_id": "67eeeba2844a3b8734e7b155",
+		"user_id": "67eeeba2844a3b8734e7b155" || null (om du är session guest),
 		"total_price": 479.2,
 		"original_price": 588,
 		"discount_applied": 108.80000000000001,
@@ -427,7 +427,7 @@ GET /orders/user
 
 **Request:**
 ```
-GET /orders/guest/:orderId
+GET /orders/history/:orderId
 ```
 
 **Response Example:**
