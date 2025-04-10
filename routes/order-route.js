@@ -15,42 +15,65 @@ router.post('/', authMiddleware, async (req, res) => {
     try {
         let cart;
         let userId;
-
+        const userInfo = req.user ? {
+            first_name: req.user.first_name,
+            last_name: req.user.last_name,
+            email: req.user.email,
+            street: req.user.street,
+            zip_code: req.user.zip_code,
+            city: req.user.city
+          } : {};
+     
+        // 1. Hämta cart baserat på om användaren är inloggad eller inte
         if (req.user) {
-            userId = req.user.userId;
-            cart = await Cart.findOne({ user_id: userId });
+            userId = req.user._id;
+            cart = await Cart.findOne({ user_id: userId }).populate('items.item_id');
         } else {
-            if (!req.session.cart || req.session.cart.items.length === 0) {
-                return res.status(400).json({ message: 'Cart is empty' });
+            // För gästanvändare – kontrollera att session.cart finns och har items
+            if (!req.session.cart || !Array.isArray(req.session.cart.items) || req.session.cart.items.length === 0) {
+                return res.status(400).json({ message: 'Cart is empty or missing (guest)' });
             }
             cart = req.session.cart;
         }
 
-        if (!cart || !cart.items || cart.items.length === 0) {
+        // 2. Kontroll: Hittades en cart?
+        if (!cart) {
+            return res.status(400).json({ message: 'Cart not found' });
+        }
+
+        // 3. Kontroll: Innehåller cart items?
+        if (!Array.isArray(cart.items) || cart.items.length === 0) {
             return res.status(400).json({ message: 'Cart is empty or invalid' });
         }
 
-        // Enrich cart items with full data from Item model
+        // 4. Enrichment: Hämta fullständig info för varje item
         const enrichedItems = await Promise.all(cart.items.map(async (item) => {
-            const fullItem = await Item.findById(item.item_id);
-            if (!fullItem) return null;
-
-            return {
-                item_id: fullItem._id,
-                title: fullItem.title,
-                description: fullItem.description || '',
-                price: fullItem.price,
-                quantity: item.quantity
-            };
+            const itemId = item.item_id._id || item.item_id; // Hantera både populated och raw ObjectId
+            const fullItem = await Item.findById(itemId);
+            if (fullItem) {
+                return {
+                    item_id: fullItem._id,
+                    title: fullItem.title,
+                    price: fullItem.price,
+                    description: fullItem.description,
+                    quantity: item.quantity
+                };
+            } else {
+                console.warn(`Item not found: ${itemId}`);
+                return null;
+            }
         }));
 
         const filteredItems = enrichedItems.filter(item => item !== null);
+
+        console.log('Cart:', cart);
+        console.log('Enriched items:', filteredItems);
+
         if (filteredItems.length === 0) {
-            
             return res.status(400).json({ message: 'No valid items in cart' });
         }
 
-        // Prepare simplified items for campaign calculation
+        // 5. För kampanjberäkningar
         const preparedItems = filteredItems.map(item => ({
             title: item.title,
             price: item.price,
@@ -62,6 +85,7 @@ router.post('/', authMiddleware, async (req, res) => {
         const deliveryMinutes = Math.floor(Math.random() * 60) + 1;
         const deliveryTime = `${deliveryMinutes} min`;
 
+        // 6. Skapa ordern
         const newOrder = new Order({
             user_id: userId || undefined,
             total_price: newPrice,
@@ -69,27 +93,34 @@ router.post('/', authMiddleware, async (req, res) => {
             discount_applied: totalDiscount,
             applied_campaigns: appliedCampaigns,
             delivery_time: deliveryTime,
-            items: filteredItems, // contains title, description, price, quantity
+            items: filteredItems,
             user_info: {
-                first_name: 'Guest',
-                last_name: 'Guest',
-                email: 'Guest',
-                street: 'Guest',
-                zip_code: 'Guest',
-                city: 'Guest'
+                    first_name: userInfo?.first_name || "Guest",
+                    last_name: userInfo?.last_name || "Guest",
+                    email: userInfo?.email || "Guest",
+                    street: userInfo?.street || "Guest",
+                    zip_code: userInfo?.zip_code || "Guest",
+                    city: userInfo?.city || "Guest",
             }
         });
 
+        console.log('New order data:', newOrder);
+
         await newOrder.save();
 
-        // Clear cart
+        // 7. Töm varukorgen
         if (req.user) {
             await Cart.findOneAndDelete({ user_id: userId });
         } else {
             req.session.cart = null;
         }
 
-        res.status(201).json({ message: 'Order created successfully', order: newOrder, orderId: newOrder._id });
+        res.status(201).json({
+            message: 'Order created successfully',
+            order: newOrder,
+            orderId: newOrder._id
+        });
+
     } catch (error) {
         console.error("Error during order creation:", error);
         res.status(500).json({ message: 'Internal Server Error', error: error.message });

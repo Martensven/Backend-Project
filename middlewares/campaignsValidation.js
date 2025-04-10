@@ -53,7 +53,6 @@ export const calculateCampaigns = (items) => {
     };
 };
 
-
 export const applyCampaigns = (items) => {
     
     if (!items || !Array.isArray(items)) {
