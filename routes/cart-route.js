@@ -1,70 +1,114 @@
 import express from 'express';
 import { Cart } from '../models/cart.js';
 import { Item } from '../models/items.js';
+import { User } from '../models/users.js';
 import { authMiddleware } from '../middlewares/middleware.js';
 import { applyCampaigns } from '../middlewares/campaignsValidation.js';
 import { validateData } from '../middlewares/dataValidation.js';
+import { validateCartPrices } from '../middlewares/validateCartPrices.js';
 
 const router = express.Router();
 
 router.get('/', authMiddleware, async (req, res) => {
     try {
         let cart;
-
-        if (req.user && req.user.userId) {
-            // För inloggad användare hämtar vi varukorgen från databasen
-            cart = await Cart.findOne({ user_id: req.user.userId })
+        let userInfo = null;
+        // För inloggade användare
+        if (req.user?._id) {
+            userInfo = await User.findById(req.user._id).lean();
+            cart = await Cart.findOne({ user_id: req.user._id })
                 .populate('items.item_id', 'title price desc');
-        } else {
-            // För gästanvändare hämtar vi varukorgen från sessionen
+        } 
+        // För gäst användare
+        if (!cart) {
             cart = req.session.cart || { items: [] };
         }
-
         if (!cart) {
             return res.status(404).json({ message: 'Cart not found' });
         }
+        // Bearbetning av varorna i varukorgen
+        const itemsToProcess = cart.items || [];
+        const enhancedItems = await Promise.all(
+            itemsToProcess.map(async (item) => {
+                let itemDetails;
+        
+                // Om item.item_id är ett objekt (populated), använd det direkt
+                if (typeof item.item_id === 'object' && item.item_id._id) {
+                    itemDetails = item.item_id;
+                } else {
+                    // Annars hämta det från databasen
+                    itemDetails = await Item.findById(item.item_id);
+                }
+                // Om något skulle gå fel här, säkerställ att itemDetails är korrekt
+                if (!itemDetails) {
+                    return {
+                        _id: item.item_id,
+                        title: "Okänd produkt",
+                        price: 0,
+                        quantity: item.quantity,
+                        totalPrice: 0
+                    };
+                }
+                return {
+                    _id: itemDetails._id,
+                    title: itemDetails.title,
+                    price: itemDetails.price,
+                    quantity: item.quantity,
+                    totalPrice: item.quantity * itemDetails.price
+                };
+            })
+        );
+        
+        const campaignResults = applyCampaigns(enhancedItems);
 
-        // Prepare items for campaign calculation
-        const enhancedItems = await Promise.all(cart.items.map(async item => {
-            let itemObject;
+        // Logga ut varukorgen och första varan för att se strukturen
+        console.log("Cart:", cart);
+        console.log("First Item:", cart.items[0].item_id);
 
-            if (typeof item.item_id === 'object' && item.item_id !== null) {
-                // Logged-in user (Mongoose document)
-                itemObject = item.item_id.toObject ? item.item_id.toObject() : item.item_id;
-            } else {
-                // Guest user (item_id is a string) - fetch from database
-                itemObject = await Item.findById(item.item_id).lean() || { _id: item.item_id, title: "Unknown", price: 0, desc: "" };
-            }
-
-            return {
-                ...itemObject,
-                quantity: item.quantity,
-                totalPrice: itemObject.price * item.quantity
-            };
-        }));
-
-        // Calculate campaigns directly
-        const campaignResults = applyCampaigns()(enhancedItems);
-
-        // Return enhanced cart with campaign results
+        // Skicka responsen med den bearbetade varukorgen
         res.json({
             cart: {
-                ...campaignResults,
-                originalItems: cart.items
+                items: enhancedItems.map(item => ({
+                    _id: item._id,
+                    title: item.title,
+                    price: item.price,
+                    quantity: item.quantity,
+                    itemTotal: item.totalPrice
+                })),
+                campaigns: campaignResults.appliedCampaigns,
+                pricing: {
+                    originalTotal: campaignResults.originalPrice,
+                    totalDiscount: campaignResults.totalDiscount,
+                    finalPrice: campaignResults.newPrice
+                },
+                UserInformation: {
+                    first_name: userInfo?.first_name || "Guest",
+                    last_name: userInfo?.last_name || "Guest",
+                    email: userInfo?.email || "Guest",
+                    street: userInfo?.street || "Guest",
+                    zip_code: userInfo?.zip_code || "Guest",
+                    city: userInfo?.city || "Guest",
+                }
             }
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error("Cart route error:", error);
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 });
-
+;
 // Lägg till vara i varukorgen
-router.post('/add', authMiddleware,
-    // Validera att item_id och mäng är närvarande och av rätt type
+router.post(
+    '/add',
+    authMiddleware,
     validateData(['item_id', 'quantity'], {
         item_id: 'string',
         quantity: 'number'
     }),
+    validateCartPrices,
     async (req, res) => {
         try {
             const { item_id, quantity } = req.body;
@@ -75,38 +119,78 @@ router.post('/add', authMiddleware,
             }
 
             let cart;
+            let isGuest = false;
+
+            // Kolla om användaren är inloggad
             if (req.user) {
-                cart = await Cart.findOne({ user_id: req.user.userId });
+                cart = await Cart.findOne({ user_id: req.user._id });
                 if (!cart) {
-                    cart = new Cart({ user_id: req.user.userId, items: [] });
+                    cart = new Cart({ user_id: req.user._id, items: [] });
                 }
             } else {
+                isGuest = true;
                 if (!req.session.cart) {
                     req.session.cart = { items: [] };
                 }
                 cart = req.session.cart;
             }
 
-            const existingItem = cart.items.find(i => i.item_id.toString() === item_id);
+            // Kolla om varan redan finns i kundvagnen
+            const existingItem = cart.items.find(i => 
+                (i.item_id.toString ? i.item_id.toString() : i.item_id) === item_id
+            );
+            // Price, title och quantity måste skickas med för att request ska fungera
             if (existingItem) {
                 existingItem.quantity += quantity;
+                existingItem.price = item.price;
+                existingItem.title = item.title;
             } else {
-                cart.items.push({ item_id, quantity });
+                cart.items.push({
+                    item_id: item._id,
+                    quantity,
+                    price: item.price,
+                    title: item.title
+                });
             }
 
-            if (req.user) {
+            // Spara cart
+            if (!isGuest) {
                 await cart.save();
                 await cart.populate('items.item_id', 'title price desc');
             } else {
                 req.session.cart = cart;
-
             }
-            res.status(200).json({ message: 'Item added to cart', addedItem: { _id: item._id, title: item.title, price: item.price, quantity: quantity }, cart });
+
+            // Skapa en enhetlig struktur för att skicka tillbaka till frontend
+            const cartResponse = {
+                items: cart.items.map(i => ({
+                    item_id: typeof i.item_id === 'object' ? i.item_id._id : i.item_id,
+                    title: i.title || (i.item_id.title ?? ''),
+                    price: i.price || (i.item_id.price ?? 0),
+                    quantity: i.quantity
+                }))
+            };
+
+            console.log(`✔️ Pris validerat: ${item.title} har pris ${item.price} kr och har lagts till i varukorgen.`);
+
+            return res.status(200).json({
+                message: 'Item added to cart',
+                addedItem: {
+                    _id: item._id,
+                    title: item.title,
+                    price: item.price,
+                    quantity
+                },
+                cart: cartResponse
+            });
+
         } catch (error) {
-            res.status(500).json({ message: 'Server error', error: error.message });
+            console.error('❌ Fel i /add route:', error);
+            return res.status(500).json({ message: 'Server error', error: error.message });
         }
     }
 );
+
 
 router.post('/remove', authMiddleware,
     // Validera att item_id finns och är av rätt typ
@@ -127,9 +211,9 @@ router.post('/remove', authMiddleware,
             let itemDetails = null;
             let removedQuantity = 0;
 
-            if (req.user?.userId) {
+            if (req.user?._id) {
                 // Kollar loggad user
-                cart = await Cart.findOne({ user_id: req.user.userId })
+                cart = await Cart.findOne({ user_id: req.user._id })
                     .populate('items.item_id', 'title price');
 
                 if (!cart) return res.status(404).json({ message: 'Cart not found' });

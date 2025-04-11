@@ -25,7 +25,7 @@ För att kunna köra detta projekt behöver du följande verktyg och beroenden:
    ```sh
    init -y
 
-   npm install express mongoose bcryptjs jsonwebtoken dotenv express-session
+   npm install express mongoose bcryptjs jsonwebtoken dotenv express-session cors
 
    ```
 
@@ -175,19 +175,12 @@ Content-Type: application/json
 ````json
 {
   "message": "Item added to cart",
-  "cart": {
-    "items": [
-      {
-        "_id": "607f1f77bcf86cd799439011",
-        "title": "Bryggkaffe",
+    "addedItem": {
+        "_id": "67e9c583c59ec5d540d89ada",
+        "title": "Cortado",
         "price": 39,
-        "desc": "Bryggd på månadens bönor.",
-        "quantity": 2,
-        "totalPrice": 78
-      }
-    ],
-    "grandTotal": 78
-  }
+        "quantity": 2
+    },
 }
 ````
 
@@ -230,8 +223,6 @@ GET /cart/
                 "totalPrice": 195
             }
         ],
-        "originalPrice": 195,
-        "newPrice": 125.5,
         "totalDiscount": 69.5,
         "appliedCampaigns": [
             {
@@ -244,7 +235,9 @@ GET /cart/
                 "discount": 50,
                 "type": "item_discount"
             }
-        ]
+        ],
+		 "originalPrice": 195,
+         "newPrice": 125.5,
     }
 }
 ````
@@ -287,15 +280,14 @@ Content-Type: application/json
 
 ````json
 {
-    "message": "Item quantity updated",
-    "cart": {
-        "items": [
-            {
-                "item_id": "67e5e2ffde5e397a40ab0842",
-                "quantity": 4
-            }
-        ]
-    }
+    "success": true,
+    "message": "Successfully removed 1 item",
+    "removedItem": {
+        "_id": "67e9c583c59ec5d540d89ad7",
+        "title": "Cappuccino",
+        "quantityRemoved": 1,
+        "remainingQuantity": 1
+    },
 }
 ````
 #### **4. Order**

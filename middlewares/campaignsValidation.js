@@ -54,11 +54,25 @@ export const calculateCampaigns = (items) => {
 };
 
 export const applyCampaigns = (items) => {
-    const formattedItems = items.map(item => ({
-        price: item.item_id.price,  
-        quantity: item.quantity,    
-        title: item.item_id.title  
-    }));
+    
+    if (!items || !Array.isArray(items)) {
+        console.warn("applyCampaigns received invalid items:", items);
+        return calculateCampaigns([]);
+    }
+
+    const formattedItems = items.map(item => {
+        if (!item) {
+            return { price: 0, quantity: 0, title: "Unknown" };
+        }
+    
+        const itemData = item.item_id ?? item; // nullish coalescing (säkrare)
+        
+        return {
+            price: itemData?.price || 0,
+            quantity: item?.quantity || 0,
+            title: itemData?.title || "Unknown"
+        };
+    });
 
     return calculateCampaigns(formattedItems);
 };

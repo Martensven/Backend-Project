@@ -2,120 +2,137 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { Order } from '../models/orders.js';
 import { Cart } from '../models/cart.js';
-import { Item } from '../models/items.js'
+import { Item } from '../models/items.js';
 import { calculateCampaigns } from '../middlewares/campaignsValidation.js';
-import { applyCampaigns } from '../middlewares/campaignsValidation.js';
 import { authMiddleware } from '../middlewares/middleware.js';
 import { validateData } from '../middlewares/dataValidation.js';
 
 const router = express.Router();
 
-// Validate MongoDB ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-//Hämtar items from cart.js genom en specifik user id eller genom session guest
 router.post('/', authMiddleware, async (req, res) => {
     try {
         let cart;
         let userId;
-
+        const userInfo = req.user ? {
+            first_name: req.user.first_name,
+            last_name: req.user.last_name,
+            email: req.user.email,
+            street: req.user.street,
+            zip_code: req.user.zip_code,
+            city: req.user.city
+          } : {};
+     
+        // 1. Hämta cart baserat på om användaren är inloggad eller inte
         if (req.user) {
-            userId = req.user.userId;
+            userId = req.user._id;
             cart = await Cart.findOne({ user_id: userId }).populate('items.item_id');
         } else {
-            if (!req.session.cart || req.session.cart.items.length === 0) {
-                return res.status(400).json({ message: 'Cart is empty' });
+            // För gästanvändare – kontrollera att session.cart finns och har items
+            if (!req.session.cart || !Array.isArray(req.session.cart.items) || req.session.cart.items.length === 0) {
+                return res.status(400).json({ message: 'Cart is empty or missing (guest)' });
             }
             cart = req.session.cart;
         }
 
-        if (!req.user) {
-            const enrichedItems = await Promise.all(cart.items.map(async (item) => {
-                const fullItem = await Item.findById(item.item_id);
-                if (fullItem) {
-                    return {
-                        item_id: fullItem._id,
-                        title: fullItem.title,
-                        price: fullItem.price,
-                        description: fullItem.description,
-                        quantity: item.quantity
-                    };
-                } else {
-                    return null;
-                }
-            }));
-            cart.items = enrichedItems.filter(item => item !== null);
-        } else {
-            const enrichedItems = await Promise.all(cart.items.map(async (item) => {
-                const fullItem = await Item.findById(item.item_id);
-                if (fullItem) {
-                    return {
-                        item_id: fullItem._id,
-                        title: fullItem.title,
-                        price: fullItem.price,
-                        description: fullItem.description,
-                        quantity: item.quantity
-                    };
-                } else {
-                    return null;
-                }
-            }));
-            cart.items = enrichedItems.filter(item => item !== null);
+        // 2. Kontroll: Hittades en cart?
+        if (!cart) {
+            return res.status(400).json({ message: 'Cart not found' });
         }
 
-        if (!cart || cart.items.length === 0) {
-            return res.status(400).json({ message: 'Cart is empty' });
+        // 3. Kontroll: Innehåller cart items?
+        if (!Array.isArray(cart.items) || cart.items.length === 0) {
+            return res.status(400).json({ message: 'Cart is empty or invalid' });
         }
 
-        const preparedItems = cart.items
-            .filter(item => item && item.price && item.quantity)
-            .map(item => ({
-                title: item.title,
-                price: item.price,
-                quantity: item.quantity
-            }));
+        // 4. Enrichment: Hämta fullständig info för varje item
+        const enrichedItems = await Promise.all(cart.items.map(async (item) => {
+            const itemId = item.item_id._id || item.item_id; // Hantera både populated och raw ObjectId
+            const fullItem = await Item.findById(itemId);
+            if (fullItem) {
+                return {
+                    item_id: fullItem._id,
+                    title: fullItem.title,
+                    price: fullItem.price,
+                    description: fullItem.description,
+                    quantity: item.quantity
+                };
+            } else {
+                console.warn(`Item not found: ${itemId}`);
+                return null;
+            }
+        }));
+
+        const filteredItems = enrichedItems.filter(item => item !== null);
+
+        console.log('Cart:', cart);
+        console.log('Enriched items:', filteredItems);
+
+        if (filteredItems.length === 0) {
+            return res.status(400).json({ message: 'No valid items in cart' });
+        }
+
+        // 5. För kampanjberäkningar
+        const preparedItems = filteredItems.map(item => ({
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity
+        }));
 
         const { newPrice, totalDiscount, appliedCampaigns, originalPrice } = calculateCampaigns(preparedItems);
 
         const deliveryMinutes = Math.floor(Math.random() * 60) + 1;
         const deliveryTime = `${deliveryMinutes} min`;
 
+        // 6. Skapa ordern
         const newOrder = new Order({
             user_id: userId || undefined,
-            total_price: newPrice, 
+            total_price: newPrice,
             original_price: originalPrice,
             discount_applied: totalDiscount,
             applied_campaigns: appliedCampaigns,
             delivery_time: deliveryTime,
-            items: cart.items.map(item => ({
-                item_id: item.item_id._id,
-                title: item.title,
-                quantity: item.quantity,
-                price: item.price
-            })),
+            items: filteredItems,
+            user_info: {
+                    first_name: userInfo?.first_name || "Guest",
+                    last_name: userInfo?.last_name || "Guest",
+                    email: userInfo?.email || "Guest",
+                    street: userInfo?.street || "Guest",
+                    zip_code: userInfo?.zip_code || "Guest",
+                    city: userInfo?.city || "Guest",
+            }
         });
+
+        console.log('New order data:', newOrder);
 
         await newOrder.save();
 
-        const orderId = newOrder._id;
-
+        // 7. Töm varukorgen
         if (req.user) {
             await Cart.findOneAndDelete({ user_id: userId });
         } else {
             req.session.cart = null;
         }
 
-        res.status(201).json({ message: 'Order created successfully', order: newOrder, orderId: newOrder._id });
+        res.status(201).json({
+            message: 'Order created successfully',
+            order: newOrder,
+            orderId: newOrder._id
+        });
+
     } catch (error) {
+        console.error("Error during order creation:", error);
         res.status(500).json({ message: 'Internal Server Error', error: error.message });
     }
 });
 
 
+
 //visar upp den specifika datan från userId 
 router.get('/history/user', authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user._id;
 
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: 'Invalid user ID' });

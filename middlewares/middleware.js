@@ -1,24 +1,31 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import {User} from "../models/users.js"
 
 export const middleWare = (app) => {
-    app.use(express.json()); // bara express.json() middleware
+    app.use(express.json());
 };
 
-// Middleware för att verifiera JWT-token
-export const authMiddleware = (req, res, next) => {
+// Middleware för att verifiera JWT-token och hämta användaren från databasen
+export const authMiddleware = async (req, res, next) => {
     const token = req.header('Authorization');
 
     if (!token || !token.startsWith('Bearer ')) {
-        // Ingen token innebär att vi tillåter gästanvändare
-        req.user = null;
-        return next(); // Fortsätt till nästa middleware
+        req.user = null; // Gästanvändare
+        return next();
     }
 
     try {
-        // Verifiera token om den finns
         const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
-        req.user = decoded;
+        
+        // Hämta hela användaren från databasen med ID från token
+        const user = await User.findById(decoded.userId).lean();
+
+        if (!user) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+
+        req.user = user;
         next();
     } catch (error) {
         res.status(400).json({ error: 'Invalid token' });
