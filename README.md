@@ -8,6 +8,10 @@ För att kunna köra detta projekt behöver du följande verktyg och beroenden:
 - [MongoDB](https://www.mongodb.com/) (antingen lokalt eller via MongoDB Atlas)
 - [Postman](https://www.postman.com/) eller [Insomnia](https://insomnia.rest/) för att testa API:et
 
+### Webbsockets
+Om vi använde oss utav websockets så skulle vi implementera en funktion för orderhantering där man har en nedräkning i realtid som kan ändras baserat på olika saker
+T.ex om det ligger flera orders pending så höjer den tiden.
+
 ### Beroenden
 - Express.js (backend-ramverk).
 - Mongoose (ODM för MongoDB).
