@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { validateData } from '../middlewares/dataValidation.js';
-import { User } from '../models/users.js'; // Justera sökvägen beroende på din mappstruktur
+import { User } from '../models/users.js'; 
 
 
 dotenv.config();

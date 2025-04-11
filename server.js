@@ -18,7 +18,6 @@ const PORT = 4321;
 
 // Middleware
 middleWare(app); // Använd middleware för att parsa JSON-data
-// app.use(middleWare());
 app.use(cors());
 app.use(express.json());
 app.use(session({

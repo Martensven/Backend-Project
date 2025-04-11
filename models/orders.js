@@ -14,8 +14,8 @@ const orderSchema = new mongoose.Schema({
     status: { type: String, enum: ['Pending', 'Completed', 'Cancelled'], default: 'Pending' },
     items: [{
         item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
-        title: { type: String, required: true },  // Här kan du överväga att göra `required: false` om du litar på berikning.
-        description: { type: String, default: "" }, // Om description är tomt, använd en tom sträng som standard.
+        title: { type: String, required: true },  
+        description: { type: String, default: "" }, 
         quantity: { type: Number, required: true },
         price: { type: Number, required: true }
     }],

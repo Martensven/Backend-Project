@@ -1,6 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import {User} from "../models/users.js"// Justera sökvägen beroende på din mappstruktur
+import {User} from "../models/users.js"
 
 export const middleWare = (app) => {
     app.use(express.json());
@@ -26,7 +26,6 @@ export const authMiddleware = async (req, res, next) => {
         }
 
         req.user = user;
-
         next();
     } catch (error) {
         res.status(400).json({ error: 'Invalid token' });

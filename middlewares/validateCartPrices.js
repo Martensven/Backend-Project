@@ -1,4 +1,3 @@
-// middlewares/validateItemExists.js
 import { Item } from '../models/items.js';
 
 export const validateCartPrices = async (req, res, next) => {
