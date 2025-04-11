@@ -13,7 +13,6 @@ router.get('/', authMiddleware, async (req, res) => {
     try {
         let cart;
         let userInfo = null;
-
         // För inloggade användare
         if (req.user?._id) {
             userInfo = await User.findById(req.user._id).lean();
@@ -27,7 +26,6 @@ router.get('/', authMiddleware, async (req, res) => {
         if (!cart) {
             return res.status(404).json({ message: 'Cart not found' });
         }
-
         // Bearbetning av varorna i varukorgen
         const itemsToProcess = cart.items || [];
         const enhancedItems = await Promise.all(
