@@ -16,7 +16,7 @@ router.get('/', authMiddleware, async (req, res) => {
             cart = await Cart.findOne({ user_id: req.user.userId })
                 .populate('items.item_id', 'title price desc');
         } else {
-            // För gästanvändare hämtar vi varukorgen från sessionen (om du vill behålla stöd för gäster)
+            // För gästanvändare hämtar vi varukorgen från sessionen
             cart = req.session.cart || { items: [] };
         }
 
