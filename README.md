@@ -27,7 +27,7 @@ T.ex om det ligger flera orders pending så höjer den tiden.
 
 2. **Installera beroenden**
    ```sh
-   init -y
+   npm init -y
 
    npm install express mongoose bcryptjs jsonwebtoken dotenv express-session cors
 
